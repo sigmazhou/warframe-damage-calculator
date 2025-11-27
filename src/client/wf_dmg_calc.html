@@ -340,32 +340,11 @@
             <!-- Section 3: In-Game Buffs -->
             <div class="section">
                 <div class="section-title">3. In-Game Buffs</div>
-                <div class="input-grid">
-                    <div class="input-group">
-                        <label>Galv Shot (0-3)</label>
-                        <input type="number" id="galv-shot-stacks" value="0" min="0" max="3">
-                    </div>
-                    <div class="input-group">
-                        <label>Galv Apt (0-4)</label>
-                        <input type="number" id="galv-apt-stacks" value="0" min="0" max="4">
-                    </div>
-                    <div class="input-group">
-                        <label>Num Debuffs</label>
-                        <input type="number" id="num-debuffs" value="0" min="0" max="10">
-                    </div>
-                    <div class="input-group">
-                        <label>Pet Crit Dmg</label>
-                        <input type="number" id="pet-crit-damage" value="0" step="0.1">
-                    </div>
-                    <div class="input-group">
-                        <label>Pet Atk Speed</label>
-                        <input type="number" id="pet-attack-speed" value="0" step="0.1">
-                    </div>
-                    <div class="input-group">
-                        <label>Final Mult</label>
-                        <input type="number" id="final-mult" value="1.0" step="0.1">
-                    </div>
+                <div class="mod-search">
+                    <input type="text" id="buff-search" placeholder="Search buffs...">
+                    <div class="search-results" id="buff-search-results"></div>
                 </div>
+                <div class="mod-list" id="selected-buffs"></div>
             </div>
 
             <!-- Section 4: Enemy Data -->
@@ -417,12 +396,17 @@
                 'void', 'tau', 'true_dmg'
             ];
 
+            let availableBuffs = [];
+
             loadEnemyTypes();
             loadElementOptions();
             initializeDefaultElements();
+            loadAvailableBuffs();
 
             const modSearch = document.getElementById('mod-search');
             const searchResults = document.getElementById('mod-search-results');
+            const buffSearch = document.getElementById('buff-search');
+            const buffSearchResults = document.getElementById('buff-search-results');
 
             function loadEnemyTypes() {
                 // Load enemy factions
@@ -458,6 +442,21 @@
                         }
                     })
                     .catch(error => console.error('Load enemy types failed:', error));
+            }
+
+            function loadAvailableBuffs() {
+                fetch('/api/ingame-buffs')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            availableBuffs = data.buffs.filter(buff => {
+                                // Filter out fields that don't make sense to manually set
+                                const excluded = ['callbacks', 'elements'];
+                                return !excluded.includes(buff.name);
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Load available buffs failed:', error));
             }
 
             function loadElementOptions() {
@@ -567,6 +566,40 @@
                 if (!modSearch.contains(e.target) && !searchResults.contains(e.target)) {
                     searchResults.style.display = 'none';
                 }
+                if (!buffSearch.contains(e.target) && !buffSearchResults.contains(e.target)) {
+                    buffSearchResults.style.display = 'none';
+                }
+            });
+
+            // Buff search functionality
+            buffSearch.addEventListener('input', function() {
+                const query = this.value.trim().toLowerCase();
+                if (query.length < 1) {
+                    buffSearchResults.style.display = 'none';
+                    return;
+                }
+
+                const matchingBuffs = availableBuffs.filter(buff =>
+                    buff.name.toLowerCase().includes(query)
+                );
+
+                buffSearchResults.innerHTML = '';
+                if (matchingBuffs.length === 0) {
+                    buffSearchResults.innerHTML = '<div class="search-result-item">No buffs found</div>';
+                } else {
+                    matchingBuffs.forEach(buff => {
+                        const item = document.createElement('div');
+                        item.className = 'search-result-item';
+                        item.textContent = buff.name;
+                        item.addEventListener('click', function() {
+                            addBuffToSelection(buff.name, buff.type);
+                            buffSearch.value = '';
+                            buffSearchResults.style.display = 'none';
+                        });
+                        buffSearchResults.appendChild(item);
+                    });
+                }
+                buffSearchResults.style.display = 'block';
             });
 
             document.getElementById('calculate-btn').addEventListener('click', calculateDamage);
@@ -583,6 +616,42 @@
                     selectedMods.removeChild(modItem);
                 });
                 selectedMods.appendChild(modItem);
+            }
+
+            function addBuffToSelection(buffName, buffType) {
+                // Check if buff already exists
+                const existingBuffs = document.querySelectorAll('.buff-item');
+                for (let item of existingBuffs) {
+                    if (item.dataset.buffName === buffName) {
+                        return; // Don't add duplicate
+                    }
+                }
+
+                const selectedBuffs = document.getElementById('selected-buffs');
+                const buffItem = document.createElement('div');
+                buffItem.className = 'mod-item buff-item';
+                buffItem.dataset.buffName = buffName;
+
+                // Determine default value based on type
+                let defaultValue = 0;
+                let step = '0.01';
+                if (buffType.includes('int')) {
+                    step = '1';
+                } else if (buffName === 'final_multiplier') {
+                    defaultValue = 1.0;
+                }
+
+                buffItem.innerHTML = `
+                    <span class="mod-name" style="flex: 1;">${buffName}</span>
+                    <input type="number" class="buff-value-input" value="${defaultValue}" step="${step}" style="width: 60px; padding: 2px 4px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-color); font-size: 11px;">
+                    <button class="remove-btn">X</button>
+                `;
+
+                buffItem.querySelector('.remove-btn').addEventListener('click', function() {
+                    selectedBuffs.removeChild(buffItem);
+                });
+
+                selectedBuffs.appendChild(buffItem);
             }
 
             function calculateDamage() {
@@ -615,14 +684,20 @@
                     type: document.getElementById('enemy-type').value
                 };
 
-                const inGameBuffs = {
-                    galvanized_shot: parseInt(document.getElementById('galv-shot-stacks')?.value || 0),
-                    galvanized_aptitude: parseInt(document.getElementById('galv-apt-stacks')?.value || 0),
-                    final_additive_cd: parseFloat(document.getElementById('pet-crit-damage')?.value || 0),
-                    attack_speed: parseFloat(document.getElementById('pet-attack-speed')?.value || 0),
-                    num_debuffs: parseInt(document.getElementById('num-debuffs')?.value || 0),
-                    final_multiplier: parseFloat(document.getElementById('final-mult')?.value || 1.0)
-                };
+                // Collect in-game buffs from the dynamic list
+                const inGameBuffs = {};
+                document.querySelectorAll('.buff-item').forEach(item => {
+                    const buffName = item.dataset.buffName;
+                    const buffInput = item.querySelector('.buff-value-input');
+                    const buffValue = buffInput.value;
+
+                    // Parse value based on type (check step attribute)
+                    if (buffInput.step === '1') {
+                        inGameBuffs[buffName] = parseInt(buffValue);
+                    } else {
+                        inGameBuffs[buffName] = parseFloat(buffValue);
+                    }
+                });
 
                 fetch('/api/calculate-damage', {
                     method: 'POST',

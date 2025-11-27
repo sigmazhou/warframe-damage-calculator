@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from dataclasses import fields
+from dataclasses import fields, MISSING
 import logging
 from collections import OrderedDict
 from src.calculator.mod_translator import ModTranslator
@@ -169,10 +169,18 @@ def get_ingame_buffs():
         buff_fields = []
 
         for field in fields(InGameBuff):
+            # Get default value, handling MISSING and default_factory
+            default_value = None
+            if field.default is not MISSING:
+                default_value = field.default
+            elif field.default_factory is not MISSING:
+                # For factory defaults, we can't easily serialize, so skip
+                default_value = None
+
             buff_fields.append({
                 'name': field.name,
                 'type': field.type.__name__ if hasattr(field.type, '__name__') else str(field.type),
-                'default': field.default if field.default is not field.default_factory else None
+                'default': default_value
             })
 
         return jsonify({
