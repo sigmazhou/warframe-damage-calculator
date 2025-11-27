@@ -24,7 +24,6 @@ class DamageCalculator:
         static_buff: StaticBuff,
         in_game_buff: InGameBuff,
         enemy_stat: EnemyStat,
-        final_multiplier: float = 1.0,
     ):
         """
         Initialize the damage calculator with weapon stats and modifiers.
@@ -32,15 +31,13 @@ class DamageCalculator:
         Args:
             weapon_stat: Base weapon statistics
             static_buff: Buffs from mods
-            in_game_buff: In-game buffs like galvanized stacks, pet bonuses, debuff count
+            in_game_buff: In-game buffs like galvanized stacks, pet bonuses, debuff count, final multiplier
             enemy_stat: Enemy faction and characteristics
-            final_multiplier: Final damage multiplier
         """
         self.weapon_stat = weapon_stat
         self.static_buff = static_buff
         self.in_game_buff = in_game_buff
         self.enemy_stat = enemy_stat
-        self.final_multiplier = final_multiplier
 
     def calc_elem(self) -> float:
         """
@@ -86,7 +83,7 @@ class DamageCalculator:
             * self._get_crit()
             * self._get_prejudice()
             * self._get_ms()
-            * self.final_multiplier
+            * self.in_game_buff.final_multiplier
         )
         return per_shot
 
@@ -128,7 +125,7 @@ class DamageCalculator:
             * self._get_crit()
             * self._get_prejudice()
             * self._get_ms()
-            * self.final_multiplier
+            * self.in_game_buff.final_multiplier
         )
         layers_per_sec = self._get_sc() * 1 * self._get_as()
         muls += [per_layer, layers_per_sec]
@@ -287,7 +284,6 @@ if __name__ == "__main__":
         static_buff=mods,
         in_game_buff=buffs,
         enemy_stat=enemy,
-        final_multiplier=1.0,
     )
 
     print(f"Dual Toxocyst Direct DPS: {calculator.calc_direct()}")

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field, fields
 from enum import StrEnum, auto
 
@@ -93,15 +94,15 @@ class Elements:
 
 
 class _GeneralStat:
-    damage: float
-    attack_speed: float
-    multishot: float
-    critical_chance: float
-    critical_damage: float
-    status_chance: float
-    status_duration: float
-    elements: Elements
-    prejudice: dict[str, float]
+    damage: float = 0
+    attack_speed: float = 0
+    multishot: float = 0
+    critical_chance: float = 0
+    critical_damage: float = 0
+    status_chance: float = 0
+    status_duration: float = 0
+    elements: Elements = field(default_factory=Elements)
+    prejudice: dict[str, float] = {}
 
 
 class WeaponStat(_GeneralStat):
@@ -133,6 +134,10 @@ class EnemyType(StrEnum):
 
 class EnemyStat:
     faction: EnemyType = EnemyType.GRINEER
+    elements_vulnerability: Elements = field(default_factory=Elements)
+
+    def __init__(self) -> None:
+        self.elements_vulnerability.set_all(1.0)
 
 
 @dataclass
@@ -145,3 +150,9 @@ class InGameBuff(_GeneralStat):
     attack_speed: float = 0.0  # Includes pet attack speed bonus
     num_debuffs: int = 0  # Number of debuffs on enemy
     elements: Elements = field(default_factory=Elements)
+    final_multiplier: float = 1.0
+    # special mod effects such as galvanized and blood rush
+    callbacks: list[Callable[["InGameBuff"], None]] = field(default_factory=list)
+
+    def __init__(self) -> None:
+        super().__init__()
