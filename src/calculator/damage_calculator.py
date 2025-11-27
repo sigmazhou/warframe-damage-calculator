@@ -74,9 +74,9 @@ class DamageCalculator:
         Returns:
             Damage value for a single hit
         """
-        elem_total = self.calc_elem()
         per_shot = (
-            elem_total
+            self.weapon_stat.damage
+            * self.calc_elem()
             * self._get_base()
             * self._get_crit()
             * self._get_prejudice()
