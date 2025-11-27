@@ -131,6 +131,7 @@ class DamageCalculator:
         Returns:
             DPS from fire status effect
         """
+        #TODO: consider % of element in all elements
         muls = [self.weapon_stat.damage]
 
         # First layer - base fire damage
@@ -283,7 +284,7 @@ if __name__ == "__main__":
 
     buffs = InGameBuff()
     buffs.galvanized_shot = 0
-    buffs.galvanized_aptitude = 0
+    buffs.galvanized_diffusion = 0
     buffs.final_additive_cd = 1.2  # Pet crit multiplier bonus
     buffs.attack_speed = 0.6  # Pet attack speed bonus
     buffs.num_debuffs = 0
@@ -316,7 +317,7 @@ if __name__ == "__main__":
     # in-game buffs
     buffs.num_debuffs = 5
     buffs.galvanized_shot = 3
-    buffs.galvanized_aptitude = 4
+    buffs.galvanized_diffusion = 4
 
     # final multiplier
     final_multiplier = 1  # +0.9
