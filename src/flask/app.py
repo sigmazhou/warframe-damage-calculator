@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dataclasses import fields
+import logging
 from src.calculator.mod_translator import ModTranslator
 from src.calculator.damage_calculator import DamageCalculator
 from src.calculator.dataclasses import (
@@ -11,6 +12,14 @@ from src.calculator.dataclasses import (
     EnemyType,
     Elements,
 )
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 
 app = Flask(__name__, static_folder='../client', static_url_path='')
 CORS(app)  # Enable CORS for all routes
@@ -201,6 +210,10 @@ def calculate_damage():
                 'error': 'No data provided'
             }), 400
 
+        # Log raw incoming request data
+        logger.info("=== Calculate Damage Request ===")
+        logger.info(f"Raw request data: {data}")
+
         # Parse weapon stats
         weapon_data = data.get('weapon', {})
         weapon = WeaponStat()
@@ -216,14 +229,23 @@ def calculate_damage():
         weapon_elements = weapon_data.get('elements', {})
         weapon.elements = Elements(**weapon_elements) if weapon_elements else Elements()
 
+        logger.info(f"Parsed weapon stats: damage={weapon.damage}, attack_speed={weapon.attack_speed}, "
+                   f"multishot={weapon.multishot}, crit_chance={weapon.critical_chance}, "
+                   f"crit_damage={weapon.critical_damage}, status_chance={weapon.status_chance}")
+        logger.info(f"Weapon elements: {weapon.elements.to_dict()}")
+
         # Parse mods
         mod_list = data.get('mods', [])
+        logger.info(f"Mods applied: {mod_list}")
 
         # Parse in-game buffs
         in_game_buffs_data = data.get('in_game_buffs', {})
+        logger.info(f"In-game buffs: {in_game_buffs_data}")
 
         # Translate mods and buffs
         static_buff, in_game_buff = translator.translate_mods(mod_list, in_game_buffs_data)
+        logger.info(f"Static buff - damage: {static_buff.damage}, multishot: {static_buff.multishot}, "
+                   f"crit_chance: {static_buff.critical_chance}, crit_damage: {static_buff.critical_damage}")
 
         # Parse enemy
         enemy_data = data.get('enemy', {})
@@ -236,6 +258,8 @@ def calculate_damage():
         except ValueError:
             enemy.faction = EnemyType.GRINEER
 
+        logger.info(f"Enemy faction: {enemy.faction.value}")
+
         # Create calculator
         calculator = DamageCalculator(
             weapon_stat=weapon,
@@ -245,12 +269,34 @@ def calculate_damage():
         )
 
         # Calculate damage
+        logger.info("--- Starting damage calculations ---")
+
         single_hit = calculator.calc_single_hit()
+        logger.info(f"Single hit damage: {single_hit}")
+
         direct_dps = calculator.calc_direct()
+        logger.info(f"Direct DPS: {direct_dps}")
+
         fire_dot_dps = calculator.calc_fire_dot()
+        logger.info(f"Fire DOT DPS: {fire_dot_dps}")
 
         # Get elemental breakdown
         elem_total = calculator.calc_elem()
+        logger.info(f"Elemental total: {elem_total}")
+
+        # Log intermediate calculations
+        base_damage = calculator._get_base()
+        crit_multiplier = calculator._get_crit()
+        multishot = calculator._get_ms()
+        attack_speed = calculator._get_as()
+        status_chance = calculator._get_sc()
+
+        logger.info(f"Intermediate calculations - base: {base_damage}, crit_mult: {crit_multiplier}, "
+                   f"multishot: {multishot}, attack_speed: {attack_speed}, status_chance: {status_chance}")
+
+        total_dps = direct_dps + fire_dot_dps
+        logger.info(f"Total DPS: {total_dps}")
+        logger.info("=== Calculation Complete ===")
 
         # Build response
         result = {
