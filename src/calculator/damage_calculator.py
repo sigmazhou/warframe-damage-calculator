@@ -113,7 +113,7 @@ class DamageCalculator:
         muls = []
 
         # First layer - base fire damage
-        base_fire_buff = self.final_buff.elements.heat + 1
+        base_fire_buff = self.final_buff.elements.heat
         muls += [base_fire_buff * self._get_prejudice()]
 
         # Following layers
