@@ -51,6 +51,7 @@
             grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 10px;
             margin-bottom: 10px;
+            grid-template-rows: 350px auto auto;
         }
 
         .section {
@@ -58,6 +59,9 @@
             border: 1px solid var(--border-color);
             border-radius: 4px;
             padding: 8px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
 
         .section-title {
@@ -130,9 +134,10 @@
         }
 
         .mod-list {
-            max-height: 120px;
+            flex: 1;
             overflow-y: auto;
             margin-top: 6px;
+            min-height: 0;
         }
 
         .mod-item {
@@ -334,7 +339,6 @@
                     <div class="search-results" id="mod-search-results"></div>
                 </div>
                 <div class="mod-list" id="selected-mods"></div>
-                <button id="calculate-btn">Calculate Damage</button>
             </div>
 
             <!-- Section 3: In-Game Buffs -->
@@ -371,6 +375,9 @@
                     <input type="number" id="enemy-armor" placeholder="Auto">
                 </div>
             </div>
+
+            <!-- Calculate Button -->
+            <button id="calculate-btn" style="grid-column: 1 / -1; margin-top: 0;">Calculate Damage</button>
 
             <!-- Results Section -->
             <div class="results">
