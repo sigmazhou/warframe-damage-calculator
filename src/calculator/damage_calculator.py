@@ -39,6 +39,7 @@ class DamageCalculator:
         self.static_buff = static_buff
         self.in_game_buff = in_game_buff
         self.enemy_stat = enemy_stat
+        self.final_buff = in_game_buff + static_buff
 
     def calc_elem(self) -> float:
         """
@@ -50,11 +51,7 @@ class DamageCalculator:
             Total elemental damage multiplier
         """
         # Combine all element sources using the Elements addition operator
-        combined = (
-            self.weapon_stat.elements
-            + self.static_buff.elements
-            + self.in_game_buff.elements
-        )
+        combined = self.weapon_stat.elements + self.final_buff.elements
 
         if self.enemy_stat.type == EnemyType.TRIDOLON:
             # Apply Tridolon type bonuses (radiation and cold get 1.5x)
@@ -116,7 +113,7 @@ class DamageCalculator:
         muls = []
 
         # First layer - base fire damage
-        base_fire_buff = self.static_buff.elements.heat + 1
+        base_fire_buff = self.final_buff.elements.heat + 1
         muls += [base_fire_buff * self._get_prejudice()]
 
         # Following layers
@@ -142,7 +139,7 @@ class DamageCalculator:
         Returns:
             Damage multiplier accounting for eidolon non-crit penalty
         """
-        cc = self.weapon_stat.critical_chance * (1 + self.static_buff.critical_chance)
+        cc = self.weapon_stat.critical_chance * (1 + self.final_buff.critical_chance)
         return 1 - (1 - cc) * 0.5 if cc < 1 else 1
 
     def _get_base(self) -> float:
@@ -157,7 +154,7 @@ class DamageCalculator:
         galvanized_bonus = (
             self.in_game_buff.galvanized_shot * self.in_game_buff.num_debuffs * 0.4
         )
-        return 1 + self.static_buff.damage + galvanized_bonus
+        return 1 + self.final_buff.damage + galvanized_bonus
 
     def _get_crit(self) -> float:
         """
@@ -168,9 +165,9 @@ class DamageCalculator:
         Returns:
             Average damage multiplier from critical hits
         """
-        cc = self.weapon_stat.critical_chance * (1 + self.static_buff.critical_chance)
+        cc = self.weapon_stat.critical_chance * (1 + self.final_buff.critical_chance)
         cd = (
-            self.weapon_stat.critical_damage * (1 + self.static_buff.critical_damage)
+            self.weapon_stat.critical_damage * (1 + self.final_buff.critical_damage)
             + self.in_game_buff.final_additive_cd
         )
 
@@ -183,7 +180,7 @@ class DamageCalculator:
         Returns:
             Prejudice damage multiplier
         """
-        total_prejudice = sum(self.static_buff.prejudice.values())
+        total_prejudice = self.final_buff.prejudice.get(self.enemy_stat.faction.value, 0)
         return 1 + total_prejudice
 
     def _get_ms(self) -> float:
@@ -195,9 +192,10 @@ class DamageCalculator:
         Returns:
             Total multishot multiplier
         """
+        # todo move this to callbacks
         galvanized_bonus = self.in_game_buff.galvanized_aptitude * 0.3
         return self.weapon_stat.multishot * (
-            1 + self.static_buff.multishot + galvanized_bonus
+            1 + self.final_buff.multishot + galvanized_bonus
         )
 
     def _get_as(self) -> float:
@@ -209,9 +207,7 @@ class DamageCalculator:
         Returns:
             Total attack speed multiplier
         """
-        return self.weapon_stat.attack_speed * (
-            1 + self.static_buff.attack_speed + self.in_game_buff.attack_speed
-        )
+        return self.weapon_stat.attack_speed * (1 + self.final_buff.attack_speed)
 
     def _get_sc(self) -> float:
         """
@@ -220,7 +216,7 @@ class DamageCalculator:
         Returns:
             Total status chance (can exceed 1.0 for multiple procs)
         """
-        return self.weapon_stat.status_chance * (1 + self.static_buff.status_chance)
+        return self.weapon_stat.status_chance * (1 + self.final_buff.status_chance)
 
 
 if __name__ == "__main__":
