@@ -1,4 +1,42 @@
+from dataclasses import dataclass, field
 from enum import StrEnum, auto
+
+
+@dataclass
+class Elements:
+    """Represents elemental and physical damage values for weapons."""
+    # Physical damage types
+    impact: float = 0.0
+    puncture: float = 0.0
+    slash: float = 0.0
+
+    # Basic elemental damage types
+    cold: float = 0.0
+    electricity: float = 0.0
+    heat: float = 0.0
+    toxin: float = 0.0
+
+    # Combined elemental damage types
+    blast: float = 0.0
+    corrosive: float = 0.0
+    gas: float = 0.0
+    magnetic: float = 0.0
+    radiation: float = 0.0
+    viral: float = 0.0
+
+    # Special damage types
+    void: float = 0.0
+    tau: float = 0.0
+    true_dmg: float = 0.0
+
+    def to_dict(self) -> dict[str, float]:
+        """Convert to dictionary format, excluding zero values."""
+        return {k: v for k, v in self.__dict__.items() if v != 0.0}
+
+    def total(self) -> float:
+        """Calculate total damage across all elements."""
+        return sum(self.__dict__.values())
+
 
 class _GeneralStat:
     damage: float
@@ -8,7 +46,7 @@ class _GeneralStat:
     critical_damage: float
     status_chance: float
     status_duration: float
-    elements: dict[str, float]
+    elements: Elements
     prejudice: dict[str, float]
 
 
@@ -19,11 +57,12 @@ class WeaponStat(_GeneralStat):
         self.attack_speed = 1
         self.multishot = 1
         self.critical_chance = 0
-        self.critical_chance = 1
+        self.critical_damage = 1
         self.status_chance = 0
         self.status_duration = 1
-        self.elements = {"punctuate": 1}
+        self.elements = Elements(puncture=1)
         self.prejudice = {}
+
 
 class StaticBuff(_GeneralStat):
     # buff from mods
@@ -31,17 +70,23 @@ class StaticBuff(_GeneralStat):
         super().__init__()
 
 
-class EnemyFaction(StrEnum):
+class EnemyType(StrEnum):
     NONE = auto()
     GRINEER = auto()
     CORPUS = auto()
     TRIDOLON = auto()
 
-class EnemyStat:
-    faction: EnemyFaction = EnemyFaction.GRINEER
 
+class EnemyStat:
+    faction: EnemyType = EnemyType.GRINEER
+
+
+@dataclass
 class InGameBuff(_GeneralStat):
+    """In-game buffs and combat state modifiers."""
     galvanized_shot: int = 0
     galvanized_aptitude: int = 0
-    final_additive_cd: float = 0
-    elements: dict[str, float] = {}
+    final_additive_cd: float = 0  # Includes pet crit multiplier bonus
+    attack_speed: float = 0.0  # Includes pet attack speed bonus
+    num_debuffs: int = 0  # Number of debuffs on enemy
+    elements: Elements = field(default_factory=Elements)
