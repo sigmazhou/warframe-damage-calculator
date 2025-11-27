@@ -10,6 +10,7 @@ from src.calculator.wf_dataclasses import (
     StaticBuff,
     InGameBuff,
     EnemyStat,
+    EnemyFaction,
     EnemyType,
     Elements,
 )
@@ -112,6 +113,28 @@ def search_mods():
         }), 500
 
 
+@app.route('/api/enemy-factions', methods=['GET'])
+def get_enemy_factions():
+    """
+    Get list of available enemy factions from EnemyFaction enum.
+
+    Returns:
+        JSON array of enemy faction strings
+    """
+    try:
+        enemy_factions = [enemy_faction.value for enemy_faction in EnemyFaction]
+
+        return jsonify({
+            'success': True,
+            'enemy_factions': enemy_factions
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/enemy-types', methods=['GET'])
 def get_enemy_types():
     """
@@ -186,7 +209,8 @@ def calculate_damage():
             },
             "mods": ["mod_name1", "mod_name2", ...],
             "enemy": {
-                "faction": str  # EnemyType value
+                "faction": str,  # EnemyFaction value (grineer, corpus, etc)
+                "type": str      # EnemyType value (tridolon, etc)
             },
             "in_game_buffs": {
                 "galvanized_shot": int,
@@ -251,15 +275,22 @@ def calculate_damage():
         # Parse enemy
         enemy_data = data.get('enemy', {})
         enemy = EnemyStat()
-        faction_str = enemy_data.get('faction', 'grineer')
 
-        # Convert faction string to EnemyType enum
+        # Parse faction
+        faction_str = enemy_data.get('faction', 'none')
         try:
-            enemy.faction = EnemyType(faction_str.lower())
+            enemy.faction = EnemyFaction(faction_str.lower())
         except ValueError:
-            enemy.faction = EnemyType.GRINEER
+            enemy.faction = EnemyFaction.NONE
 
-        logger.info(f"Enemy faction: {enemy.faction.value}")
+        # Parse type
+        type_str = enemy_data.get('type', 'none')
+        try:
+            enemy.type = EnemyType(type_str.lower())
+        except ValueError:
+            enemy.type = EnemyType.NONE
+
+        logger.info(f"Enemy faction: {enemy.faction.value}, type: {enemy.type.value}")
 
         # Create calculator
         calculator = DamageCalculator(

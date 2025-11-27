@@ -5,6 +5,7 @@ from src.calculator.wf_dataclasses import (
     StaticBuff,
     InGameBuff,
     EnemyStat,
+    EnemyFaction,
     EnemyType,
     Elements,
 )
@@ -56,7 +57,7 @@ class DamageCalculator:
         )
 
         if self.enemy_stat.type == EnemyType.TRIDOLON:
-            # Apply Tridolon faction bonuses (radiation and cold get 1.5x)
+            # Apply Tridolon type bonuses (radiation and cold get 1.5x)
             total = 0.0
             for f in fields(combined):
                 value = getattr(combined, f.name)
@@ -66,7 +67,7 @@ class DamageCalculator:
                     total += value
             return total
         else:
-            # No faction bonuses
+            # No special type bonuses
             return combined.total()
 
     def calc_single_hit(self) -> float:
@@ -277,7 +278,7 @@ if __name__ == "__main__":
     buffs.num_debuffs = 0
 
     enemy = EnemyStat()
-    enemy.faction = EnemyType.TRIDOLON
+    enemy.type = EnemyType.TRIDOLON
 
     calculator = DamageCalculator(
         weapon_stat=weapon,

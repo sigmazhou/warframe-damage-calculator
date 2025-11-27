@@ -214,21 +214,27 @@ class StaticBuff(_GeneralStat):
     pass
 
 
-class EnemyType(StrEnum):
+class EnemyFaction(StrEnum):
     NONE = auto()
     GRINEER = auto()
     CORPUS = auto()
+
+
+class EnemyType(StrEnum):
+    NONE = auto()
     TRIDOLON = auto()
 
 
+@dataclass
 class EnemyStat:
-    type: EnemyType
-    elements_vulnerability: Elements
+    faction: EnemyFaction = field(default=EnemyFaction.NONE)
+    type: EnemyType = field(default=EnemyType.NONE)
+    elements_vulnerability: Elements | None = None
 
-    def __init__(self) -> None:
-        self.type = EnemyType.NONE
-        self.elements_vulnerability = Elements()
-        self.elements_vulnerability.set_all(1.0)
+    def __post_init__(self) -> None:
+        if self.elements_vulnerability is None:
+            self.elements_vulnerability = Elements()
+            self.elements_vulnerability.set_all(1.0)
 
 
 @dataclass
