@@ -1,10 +1,139 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field, fields
 from enum import StrEnum, auto
+from typing import TypeVar, Generic
+import copy
+
+Self = TypeVar('Self', bound='_SupportsAdd')
 
 
 @dataclass
-class Elements:
+class _SupportsAdd:
+    """Base class for dataclasses that support addition operator."""
+
+    def _combine_fields(self, other, inplace: bool = False):
+        """
+        Helper to combine fields from self and other.
+
+        Args:
+            other: Another _SupportsAdd instance
+            inplace: If True, modify self in-place; if False, return dict of combined values
+
+        Returns:
+            Dict of combined values if inplace=False, None if inplace=True
+        """
+        combined_values = {} if not inplace else None
+
+        for f in fields(self):
+            self_value = getattr(self, f.name)
+
+            if hasattr(other, f.name):
+                other_value = getattr(other, f.name)
+                new_value = self._combine_field(f.name, self_value, other_value, inplace)
+
+                if inplace:
+                    setattr(self, f.name, new_value)
+                else:
+                    combined_values[f.name] = new_value
+            else:
+                # Field doesn't exist in other
+                if not inplace:
+                    combined_values[f.name] = copy.copy(self_value)
+                # For inplace, keep self's value unchanged (no action needed)
+
+        return combined_values
+
+    def __add__(self: Self, other: Self) -> Self:
+        """
+        Add two dataclass instances together, combining all field values.
+
+        For each field in self, attempts to add values from other.
+        Fields missing in other are copied from self using copy.copy().
+        Subclasses can customize behavior through _combine_field.
+
+        Args:
+            other: Another instance compatible for addition
+
+        Returns:
+            New instance of the same type as self with combined values
+        """
+        if not isinstance(other, _SupportsAdd):
+            return NotImplemented
+
+        combined_values = self._combine_fields(other, inplace=False)
+        return type(self)(**combined_values)
+
+    def __iadd__(self: Self, other: Self) -> Self:
+        """
+        In-place addition of another dataclass instance.
+
+        Modifies self by adding values from other for each field.
+        Subclasses can customize behavior through _combine_field.
+
+        Args:
+            other: Another instance compatible for addition
+
+        Returns:
+            Self with updated values
+        """
+        if not isinstance(other, _SupportsAdd):
+            return NotImplemented
+
+        self._combine_fields(other, inplace=True)
+        return self
+
+    def _combine_field(self, name: str, self_value, other_value, inplace: bool = False):
+        """
+        Combine a field value from self and other.
+
+        Override this method to customize how specific fields are combined.
+
+        Args:
+            name: Field name
+            self_value: Value from self
+            other_value: Value from other
+            inplace: If True, modify mutable objects in-place when possible
+
+        Returns:
+            Combined value
+        """
+        # Handle dict specially (dict + dict doesn't work in Python)
+        # For dicts, sum values for common keys, add unique keys
+        if isinstance(self_value, dict) and isinstance(other_value, dict):
+            if inplace:
+                # Modify dict in-place
+                for key, value in other_value.items():
+                    if key in self_value:
+                        self_value[key] = self_value[key] + value  # Sum values
+                    else:
+                        self_value[key] = value  # Add new key
+                return self_value
+            else:
+                # Create new dict
+                combined_dict = self_value.copy()
+                for key, value in other_value.items():
+                    if key in combined_dict:
+                        combined_dict[key] = combined_dict[key] + value  # Sum values
+                    else:
+                        combined_dict[key] = value  # Add new key
+                return combined_dict
+
+        # Try direct addition (works for numbers, strings, lists, _SupportsAdd objects, etc.)
+        try:
+            if inplace and hasattr(self_value, '__iadd__'):
+                # Use in-place addition if available
+                self_value += other_value
+                return self_value
+            else:
+                # Use regular addition
+                return self_value + other_value
+        except (TypeError, AttributeError):
+            # Addition not supported, use self's value
+            return copy.copy(self_value)
+
+
+@dataclass
+class Elements(_SupportsAdd):
     """Represents elemental and physical damage values for weapons."""
 
     # Physical damage types
@@ -51,49 +180,9 @@ class Elements:
         for f in fields(self):
             setattr(self, f.name, value)
 
-    def __add__(self, other: "Elements") -> "Elements":
-        """
-        Add two Elements objects together, combining all element values.
 
-        Args:
-            other: Another Elements object to add
-
-        Returns:
-            New Elements object with combined values
-        """
-        if not isinstance(other, Elements):
-            return NotImplemented
-
-        # Create dict with combined values for all fields
-        combined_values = {}
-        for f in fields(self):
-            combined_values[f.name] = getattr(self, f.name) + getattr(other, f.name)
-
-        return Elements(**combined_values)
-
-    def __iadd__(self, other: "Elements") -> "Elements":
-        """
-        In-place addition of another Elements object.
-
-        Args:
-            other: Another Elements object to add
-
-        Returns:
-            Self with updated values
-        """
-        if not isinstance(other, Elements):
-            return NotImplemented
-
-        # Add values from other to self for all fields
-        for f in fields(self):
-            current_value = getattr(self, f.name)
-            other_value = getattr(other, f.name)
-            setattr(self, f.name, current_value + other_value)
-
-        return self
-
-
-class _GeneralStat:
+@dataclass
+class _GeneralStat(_SupportsAdd):
     damage: float = 0
     attack_speed: float = 0
     multishot: float = 0
@@ -102,27 +191,27 @@ class _GeneralStat:
     status_chance: float = 0
     status_duration: float = 0
     elements: Elements = field(default_factory=Elements)
-    prejudice: dict[str, float] = {}
+    prejudice: dict[str, float] = field(default_factory=dict)
 
 
+@dataclass
 class WeaponStat(_GeneralStat):
-    def __init__(self) -> None:
-        super().__init__()
-        self.damage = 1
-        self.attack_speed = 1
-        self.multishot = 1
-        self.critical_chance = 0
-        self.critical_damage = 1
-        self.status_chance = 0
-        self.status_duration = 1
-        self.elements = Elements(puncture=1)
-        self.prejudice = {}
+    damage: float = 1
+    attack_speed: float = 1
+    multishot: float = 1
+    critical_damage: float = 1
+    status_duration: float = 1
+
+    def __post_init__(self):
+        # Set default elements to puncture=1 if not provided
+        if self.elements.total() == 0:
+            self.elements = Elements(puncture=1)
 
 
+@dataclass
 class StaticBuff(_GeneralStat):
-    # buff from mods
-    def __init__(self) -> None:
-        super().__init__()
+    """Buffs from mods."""
+    pass
 
 
 class EnemyType(StrEnum):
