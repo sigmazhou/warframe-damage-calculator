@@ -30,6 +30,81 @@ CORS(app)  # Enable CORS for all routes
 translator = ModTranslator()
 
 
+# Helper functions for flattening/unflattening buff fields
+def flatten_buff_fields(buff_fields):
+    """
+    Flatten InGameBuff fields by expanding prejudice and elements into individual fields.
+
+    Args:
+        buff_fields: List of field dictionaries from InGameBuff dataclass
+
+    Returns:
+        List of flattened field dictionaries
+    """
+    flattened = []
+
+    for field in buff_fields:
+        if field['name'] == 'prejudice':
+            # Get faction names from EnemyFaction enum (exclude NONE)
+            factions = [faction.value for faction in EnemyFaction if faction != EnemyFaction.NONE]
+            for faction in factions:
+                flattened.append({
+                    'name': f'prejudice_{faction}',
+                    'type': 'float',
+                    'default': 0.0
+                })
+        elif field['name'] == 'elements':
+            # Get element names from Elements dataclass
+            element_names = [f.name for f in fields(Elements)]
+            for element in element_names:
+                flattened.append({
+                    'name': f'element_{element}',
+                    'type': 'float',
+                    'default': 0.0
+                })
+        elif field['name'] != 'callbacks':
+            # Keep regular fields (exclude callbacks)
+            flattened.append(field)
+
+    return flattened
+
+
+def unflatten_buff_data(buff_data):
+    """
+    Unflatten buff data by reconstructing prejudice dict and elements dict.
+
+    Args:
+        buff_data: Dictionary with flattened keys (e.g., prejudice_grineer, element_heat)
+
+    Returns:
+        Dictionary with nested prejudice and elements structures
+    """
+    processed = {}
+    prejudice_dict = {}
+    elements_dict = {}
+
+    for key, value in buff_data.items():
+        if key.startswith('prejudice_'):
+            # Extract faction name (e.g., prejudice_grineer -> grineer)
+            faction = key[len('prejudice_'):]
+            prejudice_dict[faction] = value
+        elif key.startswith('element_'):
+            # Extract element name (e.g., element_heat -> heat)
+            element = key[len('element_'):]
+            elements_dict[element] = value
+        else:
+            # Regular buff field
+            processed[key] = value
+
+    # Add reconstructed nested structures if they have values
+    if prejudice_dict:
+        processed['prejudice'] = prejudice_dict
+    if elements_dict:
+        processed['elements'] = elements_dict
+
+    return processed
+
+
 @app.route('/')
 def index():
     """Serve the main HTML page."""
@@ -161,6 +236,7 @@ def get_enemy_types():
 def get_ingame_buffs():
     """
     Get list of available in-game buff fields from InGameBuff dataclass.
+    Returns flattened fields with prejudice_* and element_* expanded.
 
     Returns:
         JSON object with buff field names and their types
@@ -183,9 +259,12 @@ def get_ingame_buffs():
                 'default': default_value
             })
 
+        # Flatten the fields (expand prejudice and elements)
+        flattened_fields = flatten_buff_fields(buff_fields)
+
         return jsonify({
             'success': True,
-            'buffs': buff_fields
+            'buffs': flattened_fields
         })
     except Exception as e:
         return jsonify({
@@ -267,16 +346,20 @@ def calculate_damage():
                    f"crit_damage={weapon.critical_damage}, status_chance={weapon.status_chance}")
         logger.info(f"Weapon elements: {weapon.elements.to_dict()}")
 
-        # Parse mods
-        mod_list = data.get('mods', [])
+        # Parse mods (filter out None/null/empty values)
+        mod_list = [mod for mod in data.get('mods', []) if mod]
         logger.info(f"Mods applied: {mod_list}")
 
         # Parse in-game buffs
         in_game_buffs_data = data.get('in_game_buffs', {})
-        logger.info(f"In-game buffs: {in_game_buffs_data}")
+        logger.info(f"In-game buffs (raw): {in_game_buffs_data}")
+
+        # Unflatten buff data (reconstruct prejudice and elements)
+        processed_buffs = unflatten_buff_data(in_game_buffs_data)
+        logger.info(f"In-game buffs (processed): {processed_buffs}")
 
         # Translate mods and buffs
-        static_buff, in_game_buff = translator.translate_mods(mod_list, in_game_buffs_data)
+        static_buff, in_game_buff = translator.translate_mods(mod_list, processed_buffs)
         logger.info(f"Static buff - damage: {static_buff.damage}, multishot: {static_buff.multishot}, "
                    f"crit_chance: {static_buff.critical_chance}, crit_damage: {static_buff.critical_damage}")
 
@@ -317,8 +400,8 @@ def calculate_damage():
         direct_dps = calculator.calc_direct()
         logger.info(f"Direct DPS: {direct_dps}")
 
-        fire_dot_dps = calculator.calc_fire_dot()
-        logger.info(f"Fire DOT DPS: {fire_dot_dps}")
+        dots_dps = calculator.calc_dots()
+        logger.info(f"DOTs DPS: {dots_dps}")
 
         # Get elemental breakdown
         elem_total = calculator.calc_elem()
@@ -334,17 +417,13 @@ def calculate_damage():
         logger.info(f"Intermediate calculations - base: {base_damage}, crit_mult: {crit_multiplier}, "
                    f"multishot: {multishot}, attack_speed: {attack_speed}, status_chance: {status_chance}")
 
-        total_dps = direct_dps + fire_dot_dps
-        logger.info(f"Total DPS: {total_dps}")
         logger.info("=== Calculation Complete ===")
 
         # Build response with ordered dictionaries for consistent display order
         damage = OrderedDict([
-            ('single_hit', single_hit),
             ('direct_dps', direct_dps),
-            ('fire_dot_dps', fire_dot_dps),
-            ('total_dps', total_dps)
-        ])
+            ('single_hit', single_hit),
+        ] + [('dot_' + elem + '_dps', dps) for elem, dps in dots_dps.items()])
 
         stats = OrderedDict([
             ('base_damage', base_damage),

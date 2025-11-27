@@ -77,36 +77,17 @@
   },
   "primed_fulmination": {
     "max_level": 10,
-    "ammo_maximum": 2.2
-  },
-  "primed_continuity": {
-    "max_level": 10,
-    "ability_duration": 0.55
-  },
-  "primed_flow": {
-    "max_level": 10,
-    "power_max": 2.75
-  },
-  "primed_vigor": {
-    "max_level": 10,
-    "health": 2.2,
-    "shield_capacity": 2.2
-  },
-  "primed_redirection": {
-    "max_level": 10,
-    "shield_capacity": 1.8
-  },
-  "primed_sure_footed": {
-    "max_level": 10,
-    "knockdown_resistance": 1.0
+    "blast_radius": 0.44
   },
   "galvanized_shot": {
     "max_level": 10,
     "status_chance": 0.8,
-    "damage_per_status_per_stack": 0.4,
-    "max_stacks": 3,
-    "buff_duration": 14,
     "special_notes": "击杀获得buff，根据目标异常状态数量提升直接命中伤害，最多3层。每层每个状态提供40%伤害加成"
+  },
+  "galvanized_diffusion": {
+    "max_level": 10,
+    "multishot": 1.1,
+    "special_notes": "击杀获得buff"
   },
   "serration": {
     "max_level": 10,
@@ -232,7 +213,7 @@
   "critical_delay": {
     "max_level": 5,
     "critical_chance": 2.0,
-    "fire_rate": -0.36
+    "fire_rate": -0.2
   },
   "primed_pistol_gambit": {
     "max_level": 10,
@@ -241,10 +222,6 @@
   "primed_target_cracker": {
     "max_level": 10,
     "critical_damage": 1.1
-  },
-  "primed_fulmination": {
-    "max_level": 10,
-    "ammo_maximum": 2.2
   },
   "amalgam_serration": {
     "max_level": 10,

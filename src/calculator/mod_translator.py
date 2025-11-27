@@ -2,6 +2,7 @@ import json
 from dataclasses import fields
 from pathlib import Path
 from src.calculator.wf_dataclasses import StaticBuff, InGameBuff, Elements
+from src.data.mod_callbacks import CALLBACK_MAPPING
 
 
 # Mapping from mod stat names to our dataclass field names
@@ -104,7 +105,7 @@ class ModTranslator:
                 continue
 
             mod = self.mod_data[mod_name]
-            self._apply_mod_to_buff(mod, static_buff)
+            self._apply_mod_to_buff(mod_name, mod, static_buff, in_game_buff)
 
         # Process in-game stats
         if in_game_stats:
@@ -112,7 +113,7 @@ class ModTranslator:
 
         return static_buff, in_game_buff
 
-    def _apply_mod_to_buff(self, mod: dict, static_buff: StaticBuff) -> None:
+    def _apply_mod_to_buff(self, mod_name: str, mod: dict, static_buff: StaticBuff, in_game_buff: InGameBuff) -> None:
         """
         Apply a single mod's effects to the StaticBuff.
 
@@ -155,6 +156,10 @@ class ModTranslator:
                     current_value = getattr(static_buff, stat_key)
                     if isinstance(current_value, (int, float)):
                         setattr(static_buff, stat_key, current_value + value)
+            
+        # callbacks
+        if mod_name in CALLBACK_MAPPING:
+            in_game_buff.callbacks.append(CALLBACK_MAPPING[mod_name])
 
     def _apply_in_game_stats(self, in_game_stats: dict, in_game_buff: InGameBuff) -> None:
         """

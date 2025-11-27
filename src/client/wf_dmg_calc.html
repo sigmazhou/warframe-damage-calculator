@@ -449,11 +449,8 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            availableBuffs = data.buffs.filter(buff => {
-                                // Filter out fields that don't make sense to manually set
-                                const excluded = ['callbacks', 'elements'];
-                                return !excluded.includes(buff.name);
-                            });
+                            // Use buffs directly from API (already flattened)
+                            availableBuffs = data.buffs;
                         }
                     })
                     .catch(error => console.error('Load available buffs failed:', error));

@@ -9,6 +9,7 @@ from src.calculator.wf_dataclasses import (
     EnemyType,
     Elements,
 )
+from src.data.mod_callbacks import CallbackType
 
 
 class DamageCalculator:
@@ -40,6 +41,11 @@ class DamageCalculator:
         self.in_game_buff = in_game_buff
         self.enemy_stat = enemy_stat
         self.final_buff = in_game_buff + static_buff
+
+        # apply IGB callbacks
+        for callback in self.final_buff.callbacks:
+            if callback.type == CallbackType.IN_GAME_BUFF:
+                callback(self.final_buff)
 
     def calc_elem(self) -> float:
         """
@@ -103,18 +109,33 @@ class DamageCalculator:
 
         return reduce(lambda x, y: x * y, muls, 1)
 
-    def calc_fire_dot(self) -> float:
+    def calc_dots(self) -> dict[str, float]:
+        """
+        Calculate damage over time (DOT) for all status effects.
+
+        Returns:
+            Dictionary of status effect names and their DPS
+        """
+        dots = {
+            "heat": self.calc_dot("heat"),
+            "toxin": self.calc_dot("toxin"),
+            "slash": self.calc_dot("slash"),
+            "electricity": self.calc_dot("electricity"),
+        }
+        return {k: v for k, v in dots.items() if v > 0}
+
+    def calc_dot(self, element: str) -> float:
         """
         Calculate fire damage over time (heat proc stacking).
 
         Returns:
             DPS from fire status effect
         """
-        muls = []
+        muls = [self.weapon_stat.damage]
 
         # First layer - base fire damage
-        base_fire_buff = self.final_buff.elements.heat
-        muls += [base_fire_buff * self._get_prejudice()]
+        base_elem_buff = getattr(self.final_buff.elements, element)
+        muls += [base_elem_buff * self._get_prejudice()]
 
         # Following layers
         per_layer = (
@@ -122,10 +143,9 @@ class DamageCalculator:
             * self._get_base()
             * self._get_crit()
             * self._get_prejudice()
-            * self._get_ms()
             * self.in_game_buff.final_multiplier
         )
-        layers_per_sec = self._get_sc() * 1 * self._get_as()
+        layers_per_sec = self._get_sc() * self._get_as() * self._get_ms()
         muls += [per_layer, layers_per_sec]
 
         return reduce(lambda x, y: x * y, muls, 1)
@@ -151,10 +171,7 @@ class DamageCalculator:
         Returns:
             Base damage multiplier
         """
-        galvanized_bonus = (
-            self.in_game_buff.galvanized_shot * self.in_game_buff.num_debuffs * 0.4
-        )
-        return 1 + self.final_buff.damage + galvanized_bonus
+        return 1 + self.final_buff.damage
 
     def _get_crit(self) -> float:
         """
@@ -192,10 +209,8 @@ class DamageCalculator:
         Returns:
             Total multishot multiplier
         """
-        # todo move this to callbacks
-        galvanized_bonus = self.in_game_buff.galvanized_aptitude * 0.3
         return self.weapon_stat.multishot * (
-            1 + self.final_buff.multishot + galvanized_bonus
+            1 + self.final_buff.multishot
         )
 
     def _get_as(self) -> float:
