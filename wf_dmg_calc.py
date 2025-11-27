@@ -55,7 +55,7 @@ class DamageCalculator:
             + self.in_game_buff.elements
         )
 
-        if self.enemy_stat.faction == EnemyType.TRIDOLON:
+        if self.enemy_stat.type == EnemyType.TRIDOLON:
             # Apply Tridolon faction bonuses (radiation and cold get 1.5x)
             total = 0.0
             for f in fields(combined):
@@ -100,7 +100,7 @@ class DamageCalculator:
         shot_per_sec = self._get_as()
         muls += [per_shot, shot_per_sec]
 
-        if self.enemy_stat.faction == EnemyType.TRIDOLON:
+        if self.enemy_stat.type == EnemyType.TRIDOLON:
             muls.append(self._get_eidolon_non_crit_penalty())
 
         return reduce(lambda x, y: x * y, muls, 1)
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     buffs.num_debuffs = 0
 
     enemy = EnemyStat()
-    enemy.faction = EnemyType.TRIDOLON
+    enemy.type = EnemyType.TRIDOLON
 
     calculator = DamageCalculator(
         weapon_stat=weapon,

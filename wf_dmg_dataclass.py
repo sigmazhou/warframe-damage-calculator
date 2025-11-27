@@ -133,10 +133,12 @@ class EnemyType(StrEnum):
 
 
 class EnemyStat:
-    faction: EnemyType = EnemyType.GRINEER
-    elements_vulnerability: Elements = field(default_factory=Elements)
+    type: EnemyType
+    elements_vulnerability: Elements
 
     def __init__(self) -> None:
+        self.type = EnemyType.NONE
+        self.elements_vulnerability = Elements()
         self.elements_vulnerability.set_all(1.0)
 
 
@@ -153,6 +155,3 @@ class InGameBuff(_GeneralStat):
     final_multiplier: float = 1.0
     # special mod effects such as galvanized and blood rush
     callbacks: list[Callable[["InGameBuff"], None]] = field(default_factory=list)
-
-    def __init__(self) -> None:
-        super().__init__()
