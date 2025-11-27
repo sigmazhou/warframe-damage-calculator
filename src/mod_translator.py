@@ -1,7 +1,7 @@
 import json
 from dataclasses import fields
 from pathlib import Path
-from wf_dmg_dataclass import StaticBuff, InGameBuff, Elements
+from src.dataclasses import StaticBuff, InGameBuff, Elements
 
 
 # Mapping from mod stat names to our dataclass field names
@@ -48,7 +48,7 @@ FACTION_MAPPING = {
 class ModTranslator:
     """Translates mod names and in-game stats to StaticBuff and InGameBuff instances."""
 
-    def __init__(self, mod_data_path: str = "wf_dmg_calc_data.txt"):
+    def __init__(self, mod_data_path: str = "data/mod_data.txt"):
         """
         Initialize the translator with mod data.
 

@@ -1,6 +1,6 @@
 from dataclasses import fields
 from functools import reduce
-from wf_dmg_dataclass import (
+from src.dataclasses import (
     WeaponStat,
     StaticBuff,
     InGameBuff,
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     buffs.num_debuffs = 0
 
     enemy = EnemyStat()
-    enemy.type = EnemyType.TRIDOLON
+    enemy.faction = EnemyType.TRIDOLON
 
     calculator = DamageCalculator(
         weapon_stat=weapon,

@@ -1,4 +1,4 @@
-from wf_dmg_dataclass import InGameBuff
+from src.dataclasses import InGameBuff
 
 
 def galvanized_shot(igb: InGameBuff) -> None:
