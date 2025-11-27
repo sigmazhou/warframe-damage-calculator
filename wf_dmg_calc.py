@@ -1,3 +1,4 @@
+from dataclasses import fields
 from functools import reduce
 from wf_dmg_dataclass import (
     WeaponStat,
@@ -50,30 +51,26 @@ class DamageCalculator:
         Returns:
             Total elemental damage multiplier
         """
-        total = 0.0
-
-        # Combine weapon, mod, and in-game buff element values
-        weapon_elem = self.weapon_stat.elements
-        buff_elem = self.static_buff.elements
-        ingame_elem = self.in_game_buff.elements
+        # Combine all element sources using the Elements addition operator
+        combined = (
+            self.weapon_stat.elements
+            + self.static_buff.elements
+            + self.in_game_buff.elements
+        )
 
         if self.enemy_stat.faction == EnemyType.TRIDOLON:
             # Apply Tridolon faction bonuses (radiation and cold get 1.5x)
-            for elem_name in weapon_elem.__dataclass_fields__.keys():
-                combined_value = (
-                    getattr(weapon_elem, elem_name)
-                    + getattr(buff_elem, elem_name)
-                    + getattr(ingame_elem, elem_name)
-                )
-                if elem_name in ("radiation", "cold"):
-                    total += combined_value * 1.5
+            total = 0.0
+            for f in fields(combined):
+                value = getattr(combined, f.name)
+                if f.name in ("radiation", "cold"):
+                    total += value * 1.5
                 else:
-                    total += combined_value
+                    total += value
+            return total
         else:
             # No faction bonuses
-            total = weapon_elem.total() + buff_elem.total() + ingame_elem.total()
-
-        return total
+            return combined.total()
 
     def calc_single_hit(self) -> float:
         """

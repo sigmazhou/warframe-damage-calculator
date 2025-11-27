@@ -1,10 +1,11 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from enum import StrEnum, auto
 
 
 @dataclass
 class Elements:
     """Represents elemental and physical damage values for weapons."""
+
     # Physical damage types
     impact: float = 0.0
     puncture: float = 0.0
@@ -36,6 +37,59 @@ class Elements:
     def total(self) -> float:
         """Calculate total damage across all elements."""
         return sum(self.__dict__.values())
+
+    def total_with_vulnerability(self, vulnerability: "Elements") -> float:
+        """Calculate total damage across all elements with vulnerability."""
+        total = 0.0
+        for f in fields(self):
+            total += getattr(self, f.name) * getattr(vulnerability, f.name)
+        return total
+
+    def set_all(self, value: float) -> None:
+        """Set all element values to the same value."""
+        for f in fields(self):
+            setattr(self, f.name, value)
+
+    def __add__(self, other: "Elements") -> "Elements":
+        """
+        Add two Elements objects together, combining all element values.
+
+        Args:
+            other: Another Elements object to add
+
+        Returns:
+            New Elements object with combined values
+        """
+        if not isinstance(other, Elements):
+            return NotImplemented
+
+        # Create dict with combined values for all fields
+        combined_values = {}
+        for f in fields(self):
+            combined_values[f.name] = getattr(self, f.name) + getattr(other, f.name)
+
+        return Elements(**combined_values)
+
+    def __iadd__(self, other: "Elements") -> "Elements":
+        """
+        In-place addition of another Elements object.
+
+        Args:
+            other: Another Elements object to add
+
+        Returns:
+            Self with updated values
+        """
+        if not isinstance(other, Elements):
+            return NotImplemented
+
+        # Add values from other to self for all fields
+        for f in fields(self):
+            current_value = getattr(self, f.name)
+            other_value = getattr(other, f.name)
+            setattr(self, f.name, current_value + other_value)
+
+        return self
 
 
 class _GeneralStat:
@@ -84,6 +138,7 @@ class EnemyStat:
 @dataclass
 class InGameBuff(_GeneralStat):
     """In-game buffs and combat state modifiers."""
+
     galvanized_shot: int = 0
     galvanized_aptitude: int = 0
     final_additive_cd: float = 0  # Includes pet crit multiplier bonus
