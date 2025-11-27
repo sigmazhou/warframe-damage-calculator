@@ -1,6 +1,6 @@
 from dataclasses import fields
 from functools import reduce
-from src.dataclasses import (
+from src.calculator.dataclasses import (
     WeaponStat,
     StaticBuff,
     InGameBuff,
