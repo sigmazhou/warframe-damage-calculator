@@ -2,9 +2,10 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dataclasses import fields
 import logging
+from collections import OrderedDict
 from src.calculator.mod_translator import ModTranslator
 from src.calculator.damage_calculator import DamageCalculator
-from src.calculator.dataclasses import (
+from src.calculator.wf_dataclasses import (
     WeaponStat,
     StaticBuff,
     InGameBuff,
@@ -298,23 +299,27 @@ def calculate_damage():
         logger.info(f"Total DPS: {total_dps}")
         logger.info("=== Calculation Complete ===")
 
-        # Build response
+        # Build response with ordered dictionaries for consistent display order
+        damage = OrderedDict([
+            ('single_hit', single_hit),
+            ('direct_dps', direct_dps),
+            ('fire_dot_dps', fire_dot_dps),
+            ('total_dps', total_dps)
+        ])
+
+        stats = OrderedDict([
+            ('base_damage', base_damage),
+            ('multishot', multishot),
+            ('critical_multiplier', crit_multiplier),
+            ('attack_speed', attack_speed),
+            ('status_chance', status_chance),
+            ('elemental_total', elem_total)
+        ])
+
         result = {
             'success': True,
-            'damage': {
-                'single_hit': single_hit,
-                'direct_dps': direct_dps,
-                'fire_dot_dps': fire_dot_dps,
-                'total_dps': direct_dps + fire_dot_dps
-            },
-            'stats': {
-                'base_damage': calculator._get_base(),
-                'critical_multiplier': calculator._get_crit(),
-                'multishot': calculator._get_ms(),
-                'attack_speed': calculator._get_as(),
-                'status_chance': calculator._get_sc(),
-                'elemental_total': elem_total
-            },
+            'damage': damage,
+            'stats': stats,
             'buffs_applied': {
                 'static': {
                     'damage': static_buff.damage,

@@ -346,39 +346,8 @@
             <!-- Results Section -->
             <div class="results">
                 <div class="section-title">Damage Output</div>
-                <div class="results-grid">
-                    <div class="result-item">
-                        <div class="result-label">Single Hit</div>
-                        <div class="result-value" id="result-single-hit">-</div>
-                    </div>
-                    <div class="result-item">
-                        <div class="result-label">Direct DPS</div>
-                        <div class="result-value" id="result-direct-dps">-</div>
-                    </div>
-                    <div class="result-item">
-                        <div class="result-label">Fire DOT DPS</div>
-                        <div class="result-value" id="result-fire-dot">-</div>
-                    </div>
-                    <div class="result-item">
-                        <div class="result-label">Total DPS</div>
-                        <div class="result-value" id="result-total-dps">-</div>
-                    </div>
-                    <div class="result-item">
-                        <div class="result-label">Crit Mult</div>
-                        <div class="result-value" id="result-crit-mult">-</div>
-                    </div>
-                    <div class="result-item">
-                        <div class="result-label">Status/sec</div>
-                        <div class="result-value" id="result-status-sec">-</div>
-                    </div>
-                    <div class="result-item">
-                        <div class="result-label">Multishot</div>
-                        <div class="result-value" id="result-multishot">-</div>
-                    </div>
-                    <div class="result-item">
-                        <div class="result-label">Attack Speed</div>
-                        <div class="result-value" id="result-attack-speed">-</div>
-                    </div>
+                <div class="results-grid" id="results-grid">
+                    <!-- Results will be dynamically populated -->
                 </div>
                 <div style="margin-top: 10px;">
                     <div class="result-label" style="margin-bottom: 4px;">Element Distribution</div>
@@ -527,35 +496,70 @@
             }
 
             function displayResults(data) {
-                document.getElementById('result-single-hit').textContent = data.damage.single_hit.toFixed(1);
-                document.getElementById('result-direct-dps').textContent = data.damage.direct_dps.toFixed(1);
-                document.getElementById('result-fire-dot').textContent = data.damage.fire_dot_dps.toFixed(1);
-                document.getElementById('result-total-dps').textContent = data.damage.total_dps.toFixed(1);
-                document.getElementById('result-crit-mult').textContent = data.stats.critical_multiplier.toFixed(2);
-                document.getElementById('result-status-sec').textContent =
-                    (data.stats.status_chance * data.stats.attack_speed).toFixed(2);
-                document.getElementById('result-multishot').textContent = data.stats.multishot.toFixed(2);
-                document.getElementById('result-attack-speed').textContent = data.stats.attack_speed.toFixed(2);
+                const resultsGrid = document.getElementById('results-grid');
+                resultsGrid.innerHTML = '';
 
-                const elementBar = document.getElementById('element-bar');
-                elementBar.innerHTML = '';
-                const elements = data.buffs_applied.static.elements;
-                const totalElem = Object.values(elements).reduce((a, b) => a + b, 0);
+                // Helper function to create a result item
+                function createResultItem(label, value) {
+                    const item = document.createElement('div');
+                    item.className = 'result-item';
+                    item.innerHTML = `
+                        <div class="result-label">${label}</div>
+                        <div class="result-value">${value}</div>
+                    `;
+                    return item;
+                }
 
-                if (totalElem > 0) {
-                    for (const [elemName, elemValue] of Object.entries(elements)) {
-                        if (elemValue > 0) {
-                            const percentage = (elemValue / totalElem) * 100;
-                            const segment = document.createElement('div');
-                            segment.className = 'element-segment';
-                            segment.style.width = `${percentage}%`;
-                            segment.style.backgroundColor = getElementColor(elemName);
-                            segment.textContent = `${elemName} ${percentage.toFixed(0)}%`;
-                            elementBar.appendChild(segment);
+                // Helper function to format numbers
+                function formatValue(value) {
+                    if (typeof value === 'number') {
+                        return value.toFixed(2);
+                    }
+                    return value;
+                }
+
+                // Display all damage values from backend
+                if (data.damage) {
+                    for (const [key, value] of Object.entries(data.damage)) {
+                        resultsGrid.appendChild(createResultItem(key, formatValue(value)));
+                    }
+                }
+
+                // Display all stats values from backend
+                if (data.stats) {
+                    for (const [key, value] of Object.entries(data.stats)) {
+                        // Skip elemental_total as it's complex object, can be handled separately if needed
+                        if (typeof value !== 'object') {
+                            resultsGrid.appendChild(createResultItem(key, formatValue(value)));
                         }
                     }
+                }
+
+                // Display element bar
+                const elementBar = document.getElementById('element-bar');
+                elementBar.innerHTML = '';
+
+                if (data.buffs_applied && data.buffs_applied.static && data.buffs_applied.static.elements) {
+                    const elements = data.buffs_applied.static.elements;
+                    const totalElem = Object.values(elements).reduce((a, b) => a + b, 0);
+
+                    if (totalElem > 0) {
+                        for (const [elemName, elemValue] of Object.entries(elements)) {
+                            if (elemValue > 0) {
+                                const percentage = (elemValue / totalElem) * 100;
+                                const segment = document.createElement('div');
+                                segment.className = 'element-segment';
+                                segment.style.width = `${percentage}%`;
+                                segment.style.backgroundColor = getElementColor(elemName);
+                                segment.textContent = `${elemName}: ${percentage.toFixed(0)}%`;
+                                elementBar.appendChild(segment);
+                            }
+                        }
+                    } else {
+                        elementBar.innerHTML = '<div style="padding: 4px; text-align: center;">No elemental damage</div>';
+                    }
                 } else {
-                    elementBar.innerHTML = '<div style="padding: 4px; text-align: center;">No elemental damage</div>';
+                    elementBar.innerHTML = '<div style="padding: 4px; text-align: center;">No elemental data</div>';
                 }
             }
 

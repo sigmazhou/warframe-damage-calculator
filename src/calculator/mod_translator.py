@@ -1,7 +1,7 @@
 import json
 from dataclasses import fields
 from pathlib import Path
-from src.calculator.dataclasses import StaticBuff, InGameBuff, Elements
+from src.calculator.wf_dataclasses import StaticBuff, InGameBuff, Elements
 
 
 # Mapping from mod stat names to our dataclass field names
