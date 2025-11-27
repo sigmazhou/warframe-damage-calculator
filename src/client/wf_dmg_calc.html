@@ -150,6 +150,51 @@
             flex: 1;
         }
 
+        .element-list {
+            max-height: 80px;
+            overflow-y: auto;
+            margin-top: 4px;
+        }
+
+        .element-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px;
+            background: var(--input-bg);
+            margin-bottom: 2px;
+            border-radius: 2px;
+            font-size: 10px;
+        }
+
+        .element-name {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .element-value {
+            font-weight: 600;
+            color: var(--accent-color);
+            font-size: 10px;
+        }
+
+        .element-value-input {
+            width: 50px;
+            padding: 2px 4px;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+            color: var(--accent-color);
+            font-size: 10px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .element-value-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
         .remove-btn {
             background: #c44;
             border: none;
@@ -268,13 +313,16 @@
                 </div>
                 <div style="margin-top: 6px;">
                     <div class="input-group">
-                        <label>Impact/Puncture/Slash</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px;">
-                            <input type="number" id="impact-damage" value="0" placeholder="IPS">
-                            <input type="number" id="puncture-damage" value="0" placeholder="P">
-                            <input type="number" id="slash-damage" value="0" placeholder="S">
+                        <label>Weapon Elements</label>
+                        <div style="display: flex; gap: 3px;">
+                            <select id="element-select" style="flex: 1;">
+                                <option value="">Add element...</option>
+                            </select>
+                            <input type="number" id="element-value" placeholder="Value" step="0.01" style="width: 70px;">
+                            <button type="button" id="add-element-btn" style="width: 40px; margin: 0; padding: 4px;">+</button>
                         </div>
                     </div>
+                    <div class="element-list" id="weapon-elements"></div>
                 </div>
             </div>
 
@@ -359,7 +407,17 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Available elements from the Elements class
+            const availableElements = [
+                'impact', 'puncture', 'slash',
+                'cold', 'electricity', 'heat', 'toxin',
+                'blast', 'corrosive', 'gas', 'magnetic', 'radiation', 'viral',
+                'void', 'tau', 'true_dmg'
+            ];
+
             loadEnemyTypes();
+            loadElementOptions();
+            initializeDefaultElements();
 
             const modSearch = document.getElementById('mod-search');
             const searchResults = document.getElementById('mod-search-results');
@@ -381,6 +439,73 @@
                     })
                     .catch(error => console.error('Load enemy types failed:', error));
             }
+
+            function loadElementOptions() {
+                const elementSelect = document.getElementById('element-select');
+                availableElements.forEach(element => {
+                    const option = document.createElement('option');
+                    option.value = element;
+                    option.textContent = element.charAt(0).toUpperCase() + element.slice(1).replace('_', ' ');
+                    elementSelect.appendChild(option);
+                });
+            }
+
+            function initializeDefaultElements() {
+                // Add default 100 impact
+                addWeaponElementProgrammatic('impact', 100);
+            }
+
+            function addWeaponElementProgrammatic(elementName, value) {
+                // Check if element already exists
+                const existingElements = document.querySelectorAll('.element-item');
+                for (let item of existingElements) {
+                    if (item.dataset.element === elementName) {
+                        return; // Don't add duplicate
+                    }
+                }
+
+                const weaponElements = document.getElementById('weapon-elements');
+                const elementItem = document.createElement('div');
+                elementItem.className = 'element-item';
+                elementItem.dataset.element = elementName;
+                elementItem.dataset.value = value;
+                elementItem.innerHTML = `
+                    <span class="element-name">${elementName}</span>
+                    <input type="number" class="element-value-input" value="${value}" step="0.01">
+                    <span style="font-size: 10px; color: var(--text-color);">%</span>
+                    <button class="remove-btn" type="button">X</button>
+                `;
+
+                // Update data attribute when value changes
+                const valueInput = elementItem.querySelector('.element-value-input');
+                valueInput.addEventListener('input', function() {
+                    elementItem.dataset.value = this.value;
+                });
+
+                elementItem.querySelector('.remove-btn').addEventListener('click', function() {
+                    weaponElements.removeChild(elementItem);
+                });
+                weaponElements.appendChild(elementItem);
+            }
+
+            function addWeaponElement() {
+                const elementSelect = document.getElementById('element-select');
+                const elementValue = document.getElementById('element-value');
+                const selectedElement = elementSelect.value;
+                const value = parseFloat(elementValue.value);
+
+                if (!selectedElement || isNaN(value) || value <= 0) {
+                    return;
+                }
+
+                addWeaponElementProgrammatic(selectedElement, value);
+
+                // Reset inputs
+                elementSelect.value = '';
+                elementValue.value = '';
+            }
+
+            document.getElementById('add-element-btn').addEventListener('click', addWeaponElement);
 
             modSearch.addEventListener('input', function() {
                 const query = this.value.trim();
@@ -441,18 +566,22 @@
             }
 
             function calculateDamage() {
+                // Collect weapon elements from the dynamic list and convert from percentage
+                const elements = {};
+                document.querySelectorAll('.element-item').forEach(item => {
+                    const elementName = item.dataset.element;
+                    const elementValue = parseFloat(item.dataset.value) / 100; // Convert percentage to decimal
+                    elements[elementName] = elementValue;
+                });
+
                 const weaponConfig = {
-                    damage: parseFloat(document.getElementById('base-damage').value) / 100,
+                    damage: parseFloat(document.getElementById('base-damage').value),
                     attack_speed: parseFloat(document.getElementById('fire-rate').value),
                     multishot: parseFloat(document.getElementById('multishot').value),
                     critical_chance: parseFloat(document.getElementById('crit-chance').value) / 100,
                     critical_damage: parseFloat(document.getElementById('crit-multiplier').value),
                     status_chance: parseFloat(document.getElementById('status-chance').value) / 100,
-                    elements: {
-                        impact: parseFloat(document.getElementById('impact-damage').value) / 100 || 0,
-                        puncture: parseFloat(document.getElementById('puncture-damage').value) / 100 || 0,
-                        slash: parseFloat(document.getElementById('slash-damage').value) / 100 || 0
-                    }
+                    elements: elements
                 };
 
                 const mods = [];
