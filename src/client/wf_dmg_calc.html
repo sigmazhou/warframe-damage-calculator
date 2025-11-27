@@ -3,346 +3,328 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warframe伤害计算器</title>
+    <title>Warframe Damage Calculator</title>
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --accent-color: #e74c3c;
-            --light-color: #ecf0f1;
-            --dark-color: #34495e;
+            --primary-bg: #1a1a1a;
+            --secondary-bg: #2a2a2a;
+            --border-color: #3a3a3a;
+            --text-color: #e0e0e0;
+            --accent-color: #4a9eff;
+            --input-bg: #333;
         }
-        
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-        
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: var(--light-color);
-            background-color: var(--primary-color);
-            padding: 20px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            padding: 10px;
+            font-size: 13px;
+            line-height: 1.4;
         }
-        
+
         .container {
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
         }
-        
+
         header {
             text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: var(--dark-color);
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 8px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--accent-color);
         }
-        
+
         h1 {
-            color: var(--secondary-color);
+            font-size: 20px;
+            color: var(--accent-color);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
             margin-bottom: 10px;
         }
-        
-        .main-content {
+
+        .section {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .input-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 6px;
         }
-        
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
+
+        .input-group {
+            margin-bottom: 6px;
         }
-        
-        .config-panel, .results-panel {
-            background-color: var(--dark-color);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .panel-title {
-            border-bottom: 2px solid var(--secondary-color);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            color: var(--secondary-color);
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        label {
+
+        .input-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 2px;
+            color: #aaa;
         }
-        
-        select, input, button {
+
+        input, select {
             width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 4px;
-            background-color: var(--light-color);
-            color: var(--dark-color);
+            padding: 4px 6px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            color: var(--text-color);
+            font-size: 12px;
         }
-        
-        button {
-            background-color: var(--secondary-color);
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s;
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
         }
-        
-        button:hover {
-            background-color: #2980b9;
-        }
-        
-        .mod-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid var(--light-color);
-            border-radius: 4px;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .mod-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .mod-item:last-child {
-            border-bottom: none;
-        }
-        
-        .mod-name {
-            flex-grow: 1;
-        }
-        
-        .mod-level {
-            width: 60px;
-            margin: 0 10px;
-        }
-        
-        .remove-mod {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-        
-        .damage-breakdown {
-            margin-top: 20px;
-        }
-        
-        .damage-bar {
-            height: 20px;
-            background-color: var(--light-color);
-            border-radius: 10px;
-            margin-bottom: 5px;
-            overflow: hidden;
-        }
-        
-        .damage-fill {
-            height: 100%;
-            border-radius: 10px;
-        }
-        
-        .damage-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        
-        .result-item {
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-        
-        .result-value {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: var(--secondary-color);
-        }
-        
-        .search-box {
+
+        .mod-search {
             position: relative;
         }
-        
+
         .search-results {
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
-            background-color: var(--light-color);
-            border-radius: 0 0 4px 4px;
-            max-height: 200px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            max-height: 150px;
             overflow-y: auto;
-            z-index: 10;
+            z-index: 100;
             display: none;
         }
-        
+
         .search-result-item {
-            padding: 10px;
+            padding: 4px 6px;
             cursor: pointer;
-            color: var(--dark-color);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 11px;
         }
-        
+
         .search-result-item:hover {
-            background-color: rgba(52, 152, 219, 0.2);
+            background: var(--accent-color);
         }
-        
-        .tabs {
+
+        .mod-list {
+            max-height: 120px;
+            overflow-y: auto;
+            margin-top: 6px;
+        }
+
+        .mod-item {
             display: flex;
-            margin-bottom: 15px;
+            align-items: center;
+            gap: 6px;
+            padding: 3px;
+            background: var(--input-bg);
+            margin-bottom: 3px;
+            border-radius: 3px;
+            font-size: 11px;
         }
-        
-        .tab {
-            padding: 10px 15px;
-            background-color: rgba(255, 255, 255, 0.1);
+
+        .mod-name {
+            flex: 1;
+        }
+
+        .remove-btn {
+            background: #c44;
+            border: none;
+            color: white;
+            padding: 2px 4px;
+            border-radius: 2px;
             cursor: pointer;
-            border-radius: 4px 4px 0 0;
-            margin-right: 5px;
+            font-size: 9px;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        
-        .tab.active {
-            background-color: var(--secondary-color);
+
+        button {
+            width: 100%;
+            padding: 6px;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 3px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 6px;
         }
-        
-        .tab-content {
-            display: none;
+
+        button:hover {
+            background: #5aafff;
         }
-        
-        .tab-content.active {
-            display: block;
+
+        .results {
+            grid-column: 1 / -1;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+        }
+
+        .result-item {
+            background: var(--input-bg);
+            padding: 6px;
+            border-radius: 3px;
+        }
+
+        .result-label {
+            font-size: 11px;
+            color: #aaa;
+        }
+
+        .result-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .element-bar {
+            display: flex;
+            height: 20px;
+            margin-top: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .element-segment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Warframe伤害计算器</h1>
-            <p>配置你的武器和MOD，计算对各种敌人的伤害效果</p>
+            <h1>Warframe Damage Calculator</h1>
         </header>
-        
-        <div class="main-content">
-            <div class="config-panel">
-                <h2 class="panel-title">武器配置</h2>
-                
-                <div class="form-group">
-                    <label for="weapon-select">选择武器类型</label>
-                    <select id="weapon-select">
-                        <option value="rifle">步枪</option>
-                        <option value="shotgun">霰弹枪</option>
-                        <option value="pistol">手枪</option>
-                        <option value="melee">近战</option>
-                        <option value="archgun">Archwing枪械</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="weapon-name">武器名称 (可选)</label>
-                    <input type="text" id="weapon-name" placeholder="输入武器名称搜索...">
-                </div>
-                
-                <div class="tabs">
-                    <div class="tab active" data-tab="base-stats">基础属性</div>
-                    <div class="tab" data-tab="custom-stats">自定义属性</div>
-                </div>
-                
-                <div class="tab-content active" id="base-stats">
-                    <div class="form-group">
-                        <label for="base-damage">基础伤害</label>
+
+        <div class="main-grid">
+            <!-- Section 1: Weapon Data -->
+            <div class="section">
+                <div class="section-title">1. Weapon Data</div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>Base Damage</label>
                         <input type="number" id="base-damage" value="100">
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="crit-chance">暴击几率 (%)</label>
+                    <div class="input-group">
+                        <label>Crit Chance (%)</label>
                         <input type="number" id="crit-chance" value="10" step="0.1">
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="crit-multiplier">暴击倍率</label>
+                    <div class="input-group">
+                        <label>Crit Mult</label>
                         <input type="number" id="crit-multiplier" value="2.0" step="0.1">
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="status-chance">状态触发几率 (%)</label>
+                    <div class="input-group">
+                        <label>Status (%)</label>
                         <input type="number" id="status-chance" value="10" step="0.1">
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="fire-rate">射速</label>
+                    <div class="input-group">
+                        <label>Fire Rate</label>
                         <input type="number" id="fire-rate" value="1.0" step="0.1">
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="multishot">多重射击</label>
+                    <div class="input-group">
+                        <label>Multishot</label>
                         <input type="number" id="multishot" value="1.0" step="0.1">
                     </div>
                 </div>
-                
-                <div class="tab-content" id="custom-stats">
-                    <div class="form-group">
-                        <label for="impact-damage">冲击伤害</label>
-                        <input type="number" id="impact-damage" value="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="puncture-damage">穿刺伤害</label>
-                        <input type="number" id="puncture-damage" value="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="slash-damage">切割伤害</label>
-                        <input type="number" id="slash-damage" value="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="elemental-damage">元素伤害</label>
-                        <select id="elemental-type">
-                            <option value="heat">火焰</option>
-                            <option value="cold">冰冻</option>
-                            <option value="electricity">电击</option>
-                            <option value="toxin">毒素</option>
-                        </select>
-                        <input type="number" id="elemental-damage" value="0">
+                <div style="margin-top: 6px;">
+                    <div class="input-group">
+                        <label>Impact/Puncture/Slash</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px;">
+                            <input type="number" id="impact-damage" value="0" placeholder="IPS">
+                            <input type="number" id="puncture-damage" value="0" placeholder="P">
+                            <input type="number" id="slash-damage" value="0" placeholder="S">
+                        </div>
                     </div>
                 </div>
-                
-                <h2 class="panel-title">MOD配置</h2>
-                
-                <div class="form-group search-box">
-                    <label for="mod-search">搜索MOD</label>
-                    <input type="text" id="mod-search" placeholder="输入MOD名称...">
+            </div>
+
+            <!-- Section 2: Mod Selector -->
+            <div class="section">
+                <div class="section-title">2. Mod Selector</div>
+                <div class="mod-search">
+                    <input type="text" id="mod-search" placeholder="Search mods...">
                     <div class="search-results" id="mod-search-results"></div>
                 </div>
-                
-                <div class="form-group">
-                    <label>已选MOD</label>
-                    <div class="mod-list" id="selected-mods">
-                        <!-- 已选MOD将在这里显示 -->
+                <div class="mod-list" id="selected-mods"></div>
+                <button id="calculate-btn">Calculate Damage</button>
+            </div>
+
+            <!-- Section 3: In-Game Buffs -->
+            <div class="section">
+                <div class="section-title">3. In-Game Buffs</div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>Galv Shot (0-3)</label>
+                        <input type="number" id="galv-shot-stacks" value="0" min="0" max="3">
+                    </div>
+                    <div class="input-group">
+                        <label>Galv Apt (0-4)</label>
+                        <input type="number" id="galv-apt-stacks" value="0" min="0" max="4">
+                    </div>
+                    <div class="input-group">
+                        <label>Num Debuffs</label>
+                        <input type="number" id="num-debuffs" value="0" min="0" max="10">
+                    </div>
+                    <div class="input-group">
+                        <label>Pet Crit Dmg</label>
+                        <input type="number" id="pet-crit-damage" value="0" step="0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>Pet Atk Speed</label>
+                        <input type="number" id="pet-attack-speed" value="0" step="0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>Final Mult</label>
+                        <input type="number" id="final-mult" value="1.0" step="0.1">
                     </div>
                 </div>
-                
-                <h2 class="panel-title">敌方配置</h2>
-                
-                <div class="form-group">
-                    <label for="enemy-type">敌人类型</label>
+            </div>
+
+            <!-- Section 4: Enemy Data -->
+            <div class="section">
+                <div class="section-title">4. Enemy Data</div>
+                <div class="input-group">
+                    <label>Faction</label>
                     <select id="enemy-type">
                         <option value="grineer">Grineer</option>
                         <option value="corpus">Corpus</option>
@@ -351,136 +333,101 @@
                         <option value="sentient">Sentient</option>
                     </select>
                 </div>
-                
-                <div class="form-group">
-                    <label for="enemy-level">敌人等级</label>
+                <div class="input-group">
+                    <label>Level</label>
                     <input type="number" id="enemy-level" value="50" min="1" max="9999">
                 </div>
-                
-                <div class="form-group">
-                    <label for="enemy-armor">敌人护甲 (覆盖自动计算)</label>
-                    <input type="number" id="enemy-armor" placeholder="留空使用默认值">
+                <div class="input-group">
+                    <label>Armor Override</label>
+                    <input type="number" id="enemy-armor" placeholder="Auto">
                 </div>
-                
-                <h2 class="panel-title">Buff配置</h2>
-                
-                <div class="form-group">
-                    <label for="warframe-buffs">战甲Buff</label>
-                    <select id="warframe-buffs" multiple>
-                        <option value="roar">Roar (伤害加成)</option>
-                        <option value="eclipse">Eclipse (伤害加成)</option>
-                        <option value="xata">Xata's Whisper (虚空伤害)</option>
-                        <option value="vex">Vex Armor (伤害加成)</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="team-buffs">队友Buff</label>
-                    <select id="team-buffs" multiple>
-                        <option value="volt-shield">Volt护盾 (电伤加成)</option>
-                        <option value="rhino-roar">Rhino战吼 (伤害加成)</option>
-                        <option value="nova">Molecular Prime (易伤)</option>
-                        <option value="banshee">Sonar (弱点暴露)</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="arcanes">赋能</label>
-                    <select id="arcanes" multiple>
-                        <option value="primary-meridian">主要无情</option>
-                        <option value="primary-deadhead">主要爆头</option>
-                        <option value="primary-merciless">主要无情</option>
-                        <option value="secondary-deadhead">次要爆头</option>
-                    </select>
-                </div>
-                
-                <button id="calculate-btn">计算伤害</button>
             </div>
-            
-            <div class="results-panel">
-                <h2 class="panel-title">计算结果</h2>
-                
-                <div class="result-item">
-                    <div>基础伤害</div>
-                    <div class="result-value" id="result-base-damage">-</div>
+
+            <!-- Results Section -->
+            <div class="results">
+                <div class="section-title">Damage Output</div>
+                <div class="results-grid">
+                    <div class="result-item">
+                        <div class="result-label">Single Hit</div>
+                        <div class="result-value" id="result-single-hit">-</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Direct DPS</div>
+                        <div class="result-value" id="result-direct-dps">-</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Fire DOT DPS</div>
+                        <div class="result-value" id="result-fire-dot">-</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Total DPS</div>
+                        <div class="result-value" id="result-total-dps">-</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Crit Mult</div>
+                        <div class="result-value" id="result-crit-mult">-</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Status/sec</div>
+                        <div class="result-value" id="result-status-sec">-</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Multishot</div>
+                        <div class="result-value" id="result-multishot">-</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Attack Speed</div>
+                        <div class="result-value" id="result-attack-speed">-</div>
+                    </div>
                 </div>
-                
-                <div class="result-item">
-                    <div>暴击期望伤害</div>
-                    <div class="result-value" id="result-crit-damage">-</div>
-                </div>
-                
-                <div class="result-item">
-                    <div>状态触发/秒</div>
-                    <div class="result-value" id="result-status-procs">-</div>
-                </div>
-                
-                <div class="result-item">
-                    <div>理论DPS</div>
-                    <div class="result-value" id="result-dps">-</div>
-                </div>
-                
-                <h3 class="panel-title">元素分布</h3>
-                <div class="damage-breakdown" id="elemental-breakdown">
-                    <!-- 元素分布将在这里显示 -->
-                </div>
-                
-                <h3 class="panel-title">对各类敌人伤害</h3>
-                <div id="enemy-damage-breakdown">
-                    <!-- 对不同敌人的伤害将在这里显示 -->
-                </div>
-                
-                <h3 class="panel-title">详细数据</h3>
-                <div id="detailed-results">
-                    <!-- 详细计算结果将在这里显示 -->
+                <div style="margin-top: 10px;">
+                    <div class="result-label" style="margin-bottom: 4px;">Element Distribution</div>
+                    <div class="element-bar" id="element-bar"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 这里将包含与后端通信的JavaScript代码
-        // 以及界面交互逻辑
-        
         document.addEventListener('DOMContentLoaded', function() {
-            // 选项卡切换
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const tabId = this.getAttribute('data-tab');
-                    
-                    // 移除所有active类
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    
-                    // 添加active类到当前选项卡
-                    this.classList.add('active');
-                    document.getElementById(tabId).classList.add('active');
-                });
-            });
-            
-            // MOD搜索功能
+            loadEnemyTypes();
+
             const modSearch = document.getElementById('mod-search');
             const searchResults = document.getElementById('mod-search-results');
-            
+
+            function loadEnemyTypes() {
+                fetch('/api/enemy-types')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const enemySelect = document.getElementById('enemy-type');
+                            enemySelect.innerHTML = '';
+                            data.enemy_types.forEach(type => {
+                                const option = document.createElement('option');
+                                option.value = type;
+                                option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+                                enemySelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Load enemy types failed:', error));
+            }
+
             modSearch.addEventListener('input', function() {
                 const query = this.value.trim();
-                
                 if (query.length < 2) {
                     searchResults.style.display = 'none';
                     return;
                 }
-                
-                // 模拟从后端获取MOD数据
+
                 fetch(`/api/search-mods?q=${encodeURIComponent(query)}`)
                     .then(response => response.json())
-                    .then(mods => {
+                    .then(data => {
                         searchResults.innerHTML = '';
-                        
-                        if (mods.length === 0) {
-                            searchResults.innerHTML = '<div class="search-result-item">未找到匹配的MOD</div>';
+                        if (!data.success || data.mods.length === 0) {
+                            searchResults.innerHTML = '<div class="search-result-item">No mods found</div>';
                         } else {
-                            mods.forEach(mod => {
+                            data.mods.forEach(mod => {
                                 const item = document.createElement('div');
                                 item.className = 'search-result-item';
                                 item.textContent = mod.name;
@@ -493,168 +440,133 @@
                                 searchResults.appendChild(item);
                             });
                         }
-                        
                         searchResults.style.display = 'block';
                     })
                     .catch(error => {
-                        console.error('搜索MOD时出错:', error);
+                        console.error('Search mods error:', error);
+                        searchResults.innerHTML = '<div class="search-result-item">Search error</div>';
+                        searchResults.style.display = 'block';
                     });
             });
-            
-            // 点击其他地方隐藏搜索结果
+
             document.addEventListener('click', function(e) {
                 if (!modSearch.contains(e.target) && !searchResults.contains(e.target)) {
                     searchResults.style.display = 'none';
                 }
             });
-            
-            // 计算按钮点击事件
-            document.getElementById('calculate-btn').addEventListener('click', function() {
-                calculateDamage();
-            });
-            
-            // 添加MOD到选择列表的函数
+
+            document.getElementById('calculate-btn').addEventListener('click', calculateDamage);
+
             function addModToSelection(modId, modName) {
                 const selectedMods = document.getElementById('selected-mods');
-                
                 const modItem = document.createElement('div');
                 modItem.className = 'mod-item';
                 modItem.innerHTML = `
                     <span class="mod-name">${modName}</span>
-                    <input type="number" class="mod-level" value="0" min="0" max="10" data-mod-id="${modId}">
-                    <button class="remove-mod">移除</button>
+                    <button class="remove-btn" data-mod-id="${modId}">X</button>
                 `;
-                
-                // 移除按钮事件
-                modItem.querySelector('.remove-mod').addEventListener('click', function() {
+                modItem.querySelector('.remove-btn').addEventListener('click', function() {
                     selectedMods.removeChild(modItem);
                 });
-                
                 selectedMods.appendChild(modItem);
             }
-            
-            // 计算伤害函数
+
             function calculateDamage() {
-                // 收集武器配置
                 const weaponConfig = {
-                    type: document.getElementById('weapon-select').value,
-                    baseDamage: parseFloat(document.getElementById('base-damage').value),
-                    critChance: parseFloat(document.getElementById('crit-chance').value) / 100,
-                    critMultiplier: parseFloat(document.getElementById('crit-multiplier').value),
-                    statusChance: parseFloat(document.getElementById('status-chance').value) / 100,
-                    fireRate: parseFloat(document.getElementById('fire-rate').value),
+                    damage: parseFloat(document.getElementById('base-damage').value) / 100,
+                    attack_speed: parseFloat(document.getElementById('fire-rate').value),
                     multishot: parseFloat(document.getElementById('multishot').value),
-                    impact: parseFloat(document.getElementById('impact-damage').value) || 0,
-                    puncture: parseFloat(document.getElementById('puncture-damage').value) || 0,
-                    slash: parseFloat(document.getElementById('slash-damage').value) || 0
+                    critical_chance: parseFloat(document.getElementById('crit-chance').value) / 100,
+                    critical_damage: parseFloat(document.getElementById('crit-multiplier').value),
+                    status_chance: parseFloat(document.getElementById('status-chance').value) / 100,
+                    elements: {
+                        impact: parseFloat(document.getElementById('impact-damage').value) / 100 || 0,
+                        puncture: parseFloat(document.getElementById('puncture-damage').value) / 100 || 0,
+                        slash: parseFloat(document.getElementById('slash-damage').value) / 100 || 0
+                    }
                 };
-                
-                // 收集MOD配置
+
                 const mods = [];
                 document.querySelectorAll('.mod-item').forEach(item => {
-                    const modId = item.querySelector('.mod-level').getAttribute('data-mod-id');
-                    const level = parseInt(item.querySelector('.mod-level').value);
-                    mods.push({ id: modId, level: level });
+                    const modId = item.querySelector('.remove-btn').getAttribute('data-mod-id');
+                    mods.push(modId);
                 });
-                
-                // 收集敌方配置
+
                 const enemyConfig = {
-                    type: document.getElementById('enemy-type').value,
-                    level: parseInt(document.getElementById('enemy-level').value),
-                    armor: document.getElementById('enemy-armor').value ? 
-                           parseInt(document.getElementById('enemy-armor').value) : null
+                    faction: document.getElementById('enemy-type').value
                 };
-                
-                // 收集Buff配置
-                const buffs = {
-                    warframe: Array.from(document.getElementById('warframe-buffs').selectedOptions).map(opt => opt.value),
-                    team: Array.from(document.getElementById('team-buffs').selectedOptions).map(opt => opt.value),
-                    arcanes: Array.from(document.getElementById('arcanes').selectedOptions).map(opt => opt.value)
+
+                const inGameBuffs = {
+                    galvanized_shot: parseInt(document.getElementById('galv-shot-stacks')?.value || 0),
+                    galvanized_aptitude: parseInt(document.getElementById('galv-apt-stacks')?.value || 0),
+                    final_additive_cd: parseFloat(document.getElementById('pet-crit-damage')?.value || 0),
+                    attack_speed: parseFloat(document.getElementById('pet-attack-speed')?.value || 0),
+                    num_debuffs: parseInt(document.getElementById('num-debuffs')?.value || 0),
+                    final_multiplier: parseFloat(document.getElementById('final-mult')?.value || 1.0)
                 };
-                
-                // 发送请求到后端
+
                 fetch('/api/calculate-damage', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         weapon: weaponConfig,
                         mods: mods,
                         enemy: enemyConfig,
-                        buffs: buffs
+                        in_game_buffs: inGameBuffs
                     })
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // 更新UI显示结果
+                    if (!data.success) throw new Error(data.error || 'Calculation failed');
                     displayResults(data);
                 })
                 .catch(error => {
-                    console.error('计算伤害时出错:', error);
-                    alert('计算失败，请检查输入数据');
+                    console.error('Calculate damage error:', error);
+                    alert('Calculation failed: ' + error.message);
                 });
             }
-            
-            // 显示计算结果的函数
+
             function displayResults(data) {
-                document.getElementById('result-base-damage').textContent = data.baseDamage.toFixed(1);
-                document.getElementById('result-crit-damage').textContent = data.critDamage.toFixed(1);
-                document.getElementById('result-status-procs').textContent = data.statusProcs.toFixed(2);
-                document.getElementById('result-dps').textContent = data.dps.toFixed(1);
-                
-                // 更新元素分布
-                const elementalBreakdown = document.getElementById('elemental-breakdown');
-                elementalBreakdown.innerHTML = '';
-                
-                data.elementalDistribution.forEach(element => {
-                    const label = document.createElement('div');
-                    label.className = 'damage-label';
-                    label.innerHTML = `
-                        <span>${element.name}</span>
-                        <span>${element.percentage.toFixed(1)}%</span>
-                    `;
-                    
-                    const bar = document.createElement('div');
-                    bar.className = 'damage-bar';
-                    
-                    const fill = document.createElement('div');
-                    fill.className = 'damage-fill';
-                    fill.style.width = `${element.percentage}%`;
-                    fill.style.backgroundColor = element.color;
-                    
-                    bar.appendChild(fill);
-                    elementalBreakdown.appendChild(label);
-                    elementalBreakdown.appendChild(bar);
-                });
-                
-                // 更新对不同敌人的伤害
-                const enemyDamage = document.getElementById('enemy-damage-breakdown');
-                enemyDamage.innerHTML = '';
-                
-                data.damageVsEnemies.forEach(enemy => {
-                    const item = document.createElement('div');
-                    item.className = 'result-item';
-                    item.innerHTML = `
-                        <div>${enemy.type}</div>
-                        <div class="result-value">${enemy.damage.toFixed(1)}</div>
-                    `;
-                    enemyDamage.appendChild(item);
-                });
-                
-                // 更新详细数据
-                const detailedResults = document.getElementById('detailed-results');
-                detailedResults.innerHTML = '';
-                
-                for (const [key, value] of Object.entries(data.detailed)) {
-                    const item = document.createElement('div');
-                    item.className = 'result-item';
-                    item.innerHTML = `
-                        <div>${key}</div>
-                        <div class="result-value">${typeof value === 'number' ? value.toFixed(2) : value}</div>
-                    `;
-                    detailedResults.appendChild(item);
+                document.getElementById('result-single-hit').textContent = data.damage.single_hit.toFixed(1);
+                document.getElementById('result-direct-dps').textContent = data.damage.direct_dps.toFixed(1);
+                document.getElementById('result-fire-dot').textContent = data.damage.fire_dot_dps.toFixed(1);
+                document.getElementById('result-total-dps').textContent = data.damage.total_dps.toFixed(1);
+                document.getElementById('result-crit-mult').textContent = data.stats.critical_multiplier.toFixed(2);
+                document.getElementById('result-status-sec').textContent =
+                    (data.stats.status_chance * data.stats.attack_speed).toFixed(2);
+                document.getElementById('result-multishot').textContent = data.stats.multishot.toFixed(2);
+                document.getElementById('result-attack-speed').textContent = data.stats.attack_speed.toFixed(2);
+
+                const elementBar = document.getElementById('element-bar');
+                elementBar.innerHTML = '';
+                const elements = data.buffs_applied.static.elements;
+                const totalElem = Object.values(elements).reduce((a, b) => a + b, 0);
+
+                if (totalElem > 0) {
+                    for (const [elemName, elemValue] of Object.entries(elements)) {
+                        if (elemValue > 0) {
+                            const percentage = (elemValue / totalElem) * 100;
+                            const segment = document.createElement('div');
+                            segment.className = 'element-segment';
+                            segment.style.width = `${percentage}%`;
+                            segment.style.backgroundColor = getElementColor(elemName);
+                            segment.textContent = `${elemName} ${percentage.toFixed(0)}%`;
+                            elementBar.appendChild(segment);
+                        }
+                    }
+                } else {
+                    elementBar.innerHTML = '<div style="padding: 4px; text-align: center;">No elemental damage</div>';
                 }
+            }
+
+            function getElementColor(elemName) {
+                const colors = {
+                    impact: '#808080', puncture: '#FFD700', slash: '#DC143C',
+                    cold: '#00BFFF', electricity: '#00FF00', heat: '#FF4500', toxin: '#32CD32',
+                    blast: '#FF6347', corrosive: '#9ACD32', gas: '#98FB98',
+                    magnetic: '#1E90FF', radiation: '#FFD700', viral: '#00FF7F'
+                };
+                return colors[elemName] || '#666';
             }
         });
     </script>
