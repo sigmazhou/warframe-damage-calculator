@@ -1,0 +1,290 @@
+{
+  "primed_point_blank": {
+    "max_level": 10,
+    "damage": 1.65
+  },
+  "primed_ravage": {
+    "max_level": 10,
+    "critical_damage": 1.1
+  },
+  "primed_charged_shell": {
+    "max_level": 10,
+    "electricity_damage": 1.65
+  },
+  "primed_chilling_grasp": {
+    "max_level": 10,
+    "cold_damage": 1.65
+  },
+  "primed_cleanse_grineer": {
+    "max_level": 10,
+    "damage_vs_grineer": 0.55
+  },
+  "primed_cleanse_corpus": {
+    "max_level": 10,
+    "damage_vs_corpus": 0.55
+  },
+  "primed_cleanse_infested": {
+    "max_level": 10,
+    "damage_vs_infested": 0.55
+  },
+  "primed_cleanse_orokin": {
+    "max_level": 10,
+    "damage_vs_corrupted": 0.55
+  },
+  "primed_tactical_pump": {
+    "max_level": 10,
+    "reload_speed": 1.0
+  },
+  "primed_ammo_stock": {
+    "max_level": 10,
+    "magazine_capacity": 1.1
+  },
+  "primed_shotgun_ammo_mutation": {
+    "max_level": 10,
+    "special_notes": "特殊效果，拾取步枪/手枪弹药转换为霰弹枪弹药"
+  },
+  "primed_pressure_point": {
+    "max_level": 10,
+    "melee_damage": 1.65
+  },
+  "primed_fever_strike": {
+    "max_level": 10,
+    "toxin_damage": 1.65
+  },
+  "primed_heavy_trauma": {
+    "max_level": 10,
+    "impact_damage": 1.65
+  },
+  "primed_reach": {
+    "max_level": 10,
+    "range": 1.65
+  },
+  "primed_fury": {
+    "max_level": 10,
+    "attack_speed": 0.55
+  },
+  "primed_pistol_gambit": {
+    "max_level": 10,
+    "critical_chance": 1.87
+  },
+  "primed_target_cracker": {
+    "max_level": 10,
+    "critical_damage": 1.1
+  },
+  "primed_heated_charge": {
+    "max_level": 10,
+    "heat_damage": 1.65
+  },
+  "primed_fulmination": {
+    "max_level": 10,
+    "ammo_maximum": 2.2
+  },
+  "primed_continuity": {
+    "max_level": 10,
+    "ability_duration": 0.55
+  },
+  "primed_flow": {
+    "max_level": 10,
+    "power_max": 2.75
+  },
+  "primed_vigor": {
+    "max_level": 10,
+    "health": 2.2,
+    "shield_capacity": 2.2
+  },
+  "primed_redirection": {
+    "max_level": 10,
+    "shield_capacity": 1.8
+  },
+  "primed_sure_footed": {
+    "max_level": 10,
+    "knockdown_resistance": 1.0
+  },
+  "galvanized_shot": {
+    "max_level": 10,
+    "status_chance": 0.8,
+    "damage_per_status_per_stack": 0.4,
+    "max_stacks": 3,
+    "buff_duration": 14,
+    "special_notes": "击杀获得buff，根据目标异常状态数量提升直接命中伤害，最多3层。每层每个状态提供40%伤害加成"
+  },
+  "serration": {
+    "max_level": 10,
+    "damage": 1.65
+  },
+  "hornet_strike": {
+    "max_level": 10,
+    "damage": 2.2
+  },
+  "point_strike": {
+    "max_level": 5,
+    "critical_chance": 1.5
+  },
+  "vital_sense": {
+    "max_level": 5,
+    "critical_damage": 1.2
+  },
+  "split_chamber": {
+    "max_level": 5,
+    "multishot": 0.9
+  },
+  "barrel_diffusion": {
+    "max_level": 5,
+    "multishot": 1.2
+  },
+  "lethal_torrent": {
+    "max_level": 5,
+    "fire_rate": 0.6,
+    "multishot": 0.6
+  },
+  "galvanized_aptitude": {
+    "max_level": 10,
+    "damage_per_status": 0.8,
+    "special_notes": "步枪版，每个命中敌人的状态效果提供伤害加成"
+  },
+  "galvanized_savvy": {
+    "max_level": 10,
+    "damage_per_status": 0.8,
+    "special_notes": "霰弹枪版，每个命中敌人的状态效果提供伤害加成"
+  },
+  "galvanized_crosshairs": {
+    "max_level": 5,
+    "critical_chance": 1.2,
+    "on_headshot": "特殊效果",
+    "special_notes": "爆头获得暴击几率加成"
+  },
+  "galvanized_chamber": {
+    "max_level": 5,
+    "multishot": 0.8,
+    "on_kill": "特殊效果",
+    "special_notes": "击杀获得多重射击加成"
+  },
+  "galvanized_hell": {
+    "max_level": 5,
+    "multishot": 0.8,
+    "on_kill": "特殊效果",
+    "special_notes": "霰弹枪击杀获得多重射击加成"
+  },
+  "condition_overload": {
+    "max_level": 3,
+    "damage_per_status": 0.8,
+    "special_notes": "近战武器MOD，每个独特状态类型提供伤害加成"
+  },
+  "blood_rush": {
+    "max_level": 10,
+    "critical_chance_per_combo": 0.6,
+    "special_notes": "基于连击倍率提供暴击几率"
+  },
+  "weeping_wounds": {
+    "max_level": 10,
+    "status_chance_per_combo": 0.4,
+    "special_notes": "基于连击倍率提供状态触发几率"
+  },
+  "hunter_munitions": {
+    "max_level": 5,
+    "slash_chance_on_crit": 0.3,
+    "special_notes": "暴击时有30%几率造成切割状态"
+  },
+  "argon_scope": {
+    "max_level": 5,
+    "critical_chance": 1.35,
+    "on_headshot": "特殊效果",
+    "special_notes": "爆头获得暴击几率加成"
+  },
+  "bladed_rounds": {
+    "max_level": 5,
+    "critical_damage": 1.2,
+    "on_critical_hit": "特殊效果",
+    "special_notes": "暴击后获得暴击伤害加成"
+  },
+  "primed_cryo_rounds": {
+    "max_level": 10,
+    "cold_damage": 1.65
+  },
+  "primed_heated_charge": {
+    "max_level": 10,
+    "heat_damage": 1.65
+  },
+  "high_voltage": {
+    "max_level": 5,
+    "electricity_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "malignant_force": {
+    "max_level": 5,
+    "toxin_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "thermite_rounds": {
+    "max_level": 5,
+    "heat_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "rime_rounds": {
+    "max_level": 5,
+    "cold_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "vigilante_armaments": {
+    "max_level": 5,
+    "multishot": 0.6
+  },
+  "critical_delay": {
+    "max_level": 5,
+    "critical_chance": 2.0,
+    "fire_rate": -0.36
+  },
+  "primed_pistol_gambit": {
+    "max_level": 10,
+    "critical_chance": 1.87
+  },
+  "primed_target_cracker": {
+    "max_level": 10,
+    "critical_damage": 1.1
+  },
+  "primed_fulmination": {
+    "max_level": 10,
+    "ammo_maximum": 2.2
+  },
+  "amalgam_serration": {
+    "max_level": 10,
+    "damage": 1.65,
+    "sprint_speed": 0.25
+  },
+  "hammer_shot": {
+    "max_level": 5,
+    "critical_damage": 0.6,
+    "status_duration": 0.4
+  },
+  "vile_acceleration": {
+    "max_level": 5,
+    "fire_rate": 0.9,
+    "damage": -0.15
+  },
+  "primed_fast_hands": {
+    "max_level": 10,
+    "reload_speed": 0.55
+  },
+  "primed_bane_of_grineer": {
+    "max_level": 10,
+    "damage_vs_grineer": 0.55
+  },
+  "primed_bane_of_corpus": {
+    "max_level": 10,
+    "damage_vs_corpus": 0.55
+  },
+  "primed_bane_of_infested": {
+    "max_level": 10,
+    "damage_vs_infested": 0.55
+  },
+  "hydraulic_crosshairs": {
+    "max_level": 5,
+    "critical_chance": 1.35,
+    "on_headshot": "特殊效果"
+  },
+  "sharpened_bullets": {
+    "max_level": 5,
+    "critical_damage": 1.1,
+    "on_headshot": "特殊效果"
+  }
+}
