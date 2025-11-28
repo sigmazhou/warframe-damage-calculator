@@ -45,16 +45,16 @@ class DamageCalculator:
         self.element_order = element_order or []
         self.final_buff = in_game_buff + static_buff
 
-        self.final_buff.elements += weapon_stat.elements
-
         # apply IGB callbacks
         for callback in self.final_buff.callbacks:
             if callback.type == CallbackType.IN_GAME_BUFF:
                 callback(self.final_buff)
 
+        self.combined_elements = self.final_buff.elements + weapon_stat.elements
+
         if self.element_order:
             # Apply element combination directly to final_buff.elements
-            self.final_buff.elements.combine_elements(self.element_order)
+            self.combined_elements.combine_elements(self.element_order)
 
     def calc_elem(self) -> float:
         """
@@ -65,12 +65,12 @@ class DamageCalculator:
         Returns:
             Total elemental damage multiplier
         """
-        # Use final_buff.elements which already includes weapon elements
+        # Use combined_elements which includes weapon elements after combination
         if self.enemy_stat.type == EnemyType.TRIDOLON:
             # Apply Tridolon type bonuses (radiation and cold get 1.5x)
             total = 0.0
-            for f in fields(self.final_buff.elements):
-                value = getattr(self.final_buff.elements, f.name)
+            for f in fields(self.combined_elements):
+                value = getattr(self.combined_elements, f.name)
                 if f.name in ("radiation", "cold"):
                     total += value * 1.5
                 else:
@@ -78,27 +78,28 @@ class DamageCalculator:
             return total
         else:
             # No special type bonuses
-            return self.final_buff.elements.total()
+            return self.combined_elements.total()
 
-    def calc_single_hit(self) -> float:
+    def calc_single_hit_without_elements(self) -> float:
         """
-        Calculate damage per single hit/shot.
+        Calculate damage per single hit.
 
         Returns:
             Damage value for a single hit
         """
         per_shot = (
             self.weapon_stat.damage
-            * self.calc_elem()
             * self._get_base()
             * self._get_crit()
             * self._get_prejudice()
-            * self._get_ms()
             * self.in_game_buff.final_multiplier
         )
         return per_shot
 
-    def calc_direct(self) -> float:
+    def calc_single_hit(self) -> float:
+        return self.calc_single_hit_without_elements() * self.calc_elem()
+
+    def calc_direct_dps(self) -> float:
         """
         Calculate direct damage per second.
 
@@ -108,7 +109,7 @@ class DamageCalculator:
         muls = []
 
         per_shot = self.calc_single_hit()
-        shot_per_sec = self._get_as()
+        shot_per_sec = self._get_as() * self._get_ms()
         muls += [per_shot, shot_per_sec]
 
         if self.enemy_stat.type == EnemyType.TRIDOLON:
@@ -138,23 +139,14 @@ class DamageCalculator:
         Returns:
             DPS from fire status effect
         """
-        #TODO: consider % of element in all elements
-        muls = [self.weapon_stat.damage]
+        muls = [0.5, self.calc_single_hit_without_elements()]
 
-        # First layer - base fire damage
-        base_elem_buff = getattr(self.final_buff.elements, element)
-        muls += [base_elem_buff * self._get_prejudice()]
+        # Uncombined element for (1+mod+buff)
+        elem_mod_and_buff = self.final_buff.elements.get_element(element) + 1
+        muls += [elem_mod_and_buff, self._get_prejudice()]
 
-        # Following layers
-        per_layer = (
-            0.5
-            * self._get_base()
-            * self._get_crit()
-            * self._get_prejudice()
-            * self.in_game_buff.final_multiplier
-        )
-        layers_per_sec = self._get_sc() * self._get_as() * self._get_ms()
-        muls += [per_layer, layers_per_sec]
+        layers_per_sec = self._get_sc(element) * self._get_as() * self._get_ms()
+        muls += [layers_per_sec]
 
         return reduce(lambda x, y: x * y, muls, 1)
 
@@ -205,7 +197,9 @@ class DamageCalculator:
         Returns:
             Prejudice damage multiplier
         """
-        total_prejudice = self.final_buff.prejudice.get(self.enemy_stat.faction.value, 0)
+        total_prejudice = self.final_buff.prejudice.get(
+            self.enemy_stat.faction.value, 0
+        )
         return 1 + total_prejudice
 
     def _get_ms(self) -> float:
@@ -217,9 +211,7 @@ class DamageCalculator:
         Returns:
             Total multishot multiplier
         """
-        return self.weapon_stat.multishot * (
-            1 + self.final_buff.multishot
-        )
+        return self.weapon_stat.multishot * (1 + self.final_buff.multishot)
 
     def _get_as(self) -> float:
         """
@@ -232,14 +224,21 @@ class DamageCalculator:
         """
         return self.weapon_stat.attack_speed * (1 + self.final_buff.attack_speed)
 
-    def _get_sc(self) -> float:
+    def _get_sc(self, element: str | None = None) -> float:
         """
         Calculate total status chance.
 
         Returns:
             Total status chance (can exceed 1.0 for multiple procs)
         """
-        return self.weapon_stat.status_chance * (1 + self.final_buff.status_chance)
+        sc = self.weapon_stat.status_chance * (1 + self.final_buff.status_chance)
+        if not element:
+            return sc
+        return (
+            sc
+            * self.combined_elements.get_element(element)
+            / self.combined_elements.total()
+        )
 
 
 if __name__ == "__main__":
@@ -306,7 +305,7 @@ if __name__ == "__main__":
         enemy_stat=enemy,
     )
 
-    print(f"Dual Toxocyst Direct DPS: {calculator.calc_direct()}")
+    print(f"Dual Toxocyst Direct DPS: {calculator.calc_direct_dps()}")
 
     """
     furis fire build

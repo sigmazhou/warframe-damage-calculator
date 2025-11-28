@@ -410,7 +410,7 @@ def calculate_damage():
         single_hit = calculator.calc_single_hit()
         logger.info(f"Single hit damage: {single_hit}")
 
-        direct_dps = calculator.calc_direct()
+        direct_dps = calculator.calc_direct_dps()
         logger.info(f"Direct DPS: {direct_dps}")
 
         dots_dps = calculator.calc_dots()
@@ -433,8 +433,8 @@ def calculate_damage():
         logger.info("=== Calculation Complete ===")
 
         # Get final element breakdown after combination
-        # final_buff.elements already includes weapon elements
-        element_breakdown = calculator.final_buff.elements.to_dict()
+        # combined_elements contains the combined elements with weapon
+        element_breakdown = calculator.combined_elements.to_dict()
         logger.info(f"Final element breakdown: {element_breakdown}")
 
         # Build response with ordered dictionaries for consistent display order

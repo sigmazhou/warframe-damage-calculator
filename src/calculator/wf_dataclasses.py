@@ -18,6 +18,7 @@ ELEMENT_COMBINATION_MAP = {
 @dataclass
 class _SupportsMath:
     """Base class for dataclasses that support math operators."""
+
     def __add__(self: Self, other: Self) -> Self:
         """
         Add two dataclass instances together, combining all field values.
@@ -225,6 +226,12 @@ class Elements(_SupportsMath):
         for f in fields(self):
             setattr(self, f.name, value)
 
+    def get_element(self, element: str) -> float:
+        """Get the value of an element, including standalone elements if they exist."""
+        if element in ELEMENT_COMBINATION_MAP:
+            return getattr(self, element) + getattr(self, element + "_standalone")
+        return getattr(self, element)
+
     def combine_elements(
         self, element_order: list[str], combine_standalone: bool = True
     ) -> None:
@@ -246,9 +253,9 @@ class Elements(_SupportsMath):
             setattr(self, e1, 0)
             setattr(self, e2, 0)
         if combine_standalone:
-            self.combine_standalone_elements()
+            self._combine_standalone_elements()
 
-    def combine_standalone_elements(self) -> None:
+    def _combine_standalone_elements(self) -> None:
         for e in fields(self):
             if e.name.endswith("_standalone"):
                 e_combined = e.name.replace("_standalone", "")
@@ -295,6 +302,7 @@ class WeaponStat(_GeneralStat):
 @dataclass
 class StaticBuff(_GeneralStat):
     """Buffs from mods."""
+
     pass
 
 
