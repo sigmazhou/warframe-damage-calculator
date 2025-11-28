@@ -46,12 +46,71 @@
             color: var(--accent-color);
         }
 
+        .builds-container {
+            margin-bottom: 10px;
+        }
+
+        .build {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(74, 158, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        .build-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .build-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .remove-build-btn {
+            background: #c44;
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            padding: 0;
+        }
+
+        .remove-build-btn:hover {
+            background: #d55;
+        }
+
         .main-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 10px;
-            margin-bottom: 10px;
-            grid-template-rows: 350px auto auto;
+            grid-template-rows: 330px;
+        }
+
+        .add-build-btn {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto 10px auto;
+            display: block;
+            background: #4a9e4f;
+        }
+
+        .add-build-btn:hover {
+            background: #5aae5f;
         }
 
         .section {
@@ -232,6 +291,45 @@
             background: #5aafff;
         }
 
+        .results-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        .result-tab {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            color: var(--text-color);
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+        .result-tab:hover {
+            background: var(--secondary-bg);
+        }
+
+        .result-tab.active {
+            background: var(--accent-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        .result-content {
+            display: none;
+        }
+
+        .result-content.active {
+            display: block;
+        }
+
         .results {
             grid-column: 1 / -1;
             background: var(--secondary-bg);
@@ -286,48 +384,56 @@
             <h1>Warframe Damage Calculator</h1>
         </header>
 
-        <div class="main-grid">
-            <!-- Section 1: Weapon Data -->
-            <div class="section">
+        <!-- Builds Container -->
+        <div class="builds-container" id="builds-container">
+            <!-- Build 1 (Default) -->
+            <div class="build" data-build-id="1">
+                <div class="build-header">
+                    <div class="build-title">Build 1</div>
+                    <button class="remove-build-btn">✕</button>
+                </div>
+                <div class="main-grid">
+                    <!-- Section 1: Weapon Data -->
+                    <div class="section">
                 <div class="section-title">1. Weapon Data</div>
                 <div class="input-grid">
                     <div class="input-group">
                         <label>Base Damage</label>
-                        <input type="number" id="base-damage" value="100">
+                        <input type="number" class="base-damage-input" value="100">
                     </div>
                     <div class="input-group">
                         <label>Crit Chance (%)</label>
-                        <input type="number" id="crit-chance" value="10" step="0.1">
+                        <input type="number" class="crit-chance-input" value="10" step="0.1">
                     </div>
                     <div class="input-group">
                         <label>Crit Mult</label>
-                        <input type="number" id="crit-multiplier" value="2.0" step="0.1">
+                        <input type="number" class="crit-multiplier-input" value="2.0" step="0.1">
                     </div>
                     <div class="input-group">
                         <label>Status (%)</label>
-                        <input type="number" id="status-chance" value="10" step="0.1">
+                        <input type="number" class="status-chance-input" value="10" step="0.1">
                     </div>
                     <div class="input-group">
                         <label>Fire Rate</label>
-                        <input type="number" id="fire-rate" value="1.0" step="0.1">
+                        <input type="number" class="fire-rate-input" value="1.0" step="0.1">
                     </div>
                     <div class="input-group">
                         <label>Multishot</label>
-                        <input type="number" id="multishot" value="1.0" step="0.1">
+                        <input type="number" class="multishot-input" value="1.0" step="0.1">
                     </div>
                 </div>
                 <div style="margin-top: 6px;">
                     <div class="input-group">
                         <label>Weapon Elements</label>
                         <div style="display: flex; gap: 3px;">
-                            <select id="element-select" style="flex: 1;">
+                            <select class="element-select" style="flex: 1;">
                                 <option value="">Add element...</option>
                             </select>
-                            <input type="number" id="element-value" placeholder="Value" step="0.01" style="width: 70px;">
-                            <button type="button" id="add-element-btn" style="width: 40px; margin: 0; padding: 4px;">+</button>
+                            <input type="number" class="element-value-input" placeholder="Value" step="0.01" style="width: 70px;">
+                            <button type="button" class="add-element-btn" style="width: 40px; margin: 0; padding: 4px;">+</button>
                         </div>
                     </div>
-                    <div class="element-list" id="weapon-elements"></div>
+                    <div class="element-list weapon-elements-container"></div>
                 </div>
             </div>
 
@@ -335,20 +441,20 @@
             <div class="section">
                 <div class="section-title">2. Mod Selector</div>
                 <div class="mod-search">
-                    <input type="text" id="mod-search" placeholder="Search mods...">
-                    <div class="search-results" id="mod-search-results"></div>
+                    <input type="text" class="mod-search-input" placeholder="Search mods...">
+                    <div class="search-results mod-search-results"></div>
                 </div>
-                <div class="mod-list" id="selected-mods"></div>
+                <div class="mod-list selected-mods-container"></div>
             </div>
 
             <!-- Section 3: In-Game Buffs -->
             <div class="section">
                 <div class="section-title">3. In-Game Buffs</div>
                 <div class="mod-search">
-                    <input type="text" id="buff-search" placeholder="Search buffs...">
-                    <div class="search-results" id="buff-search-results"></div>
+                    <input type="text" class="buff-search-input" placeholder="Search buffs...">
+                    <div class="search-results buff-search-results"></div>
                 </div>
-                <div class="mod-list" id="selected-buffs"></div>
+                <div class="mod-list selected-buffs-container"></div>
             </div>
 
             <!-- Section 4: Enemy Data -->
@@ -356,39 +462,43 @@
                 <div class="section-title">4. Enemy Data</div>
                 <div class="input-group">
                     <label>Faction</label>
-                    <select id="enemy-faction">
+                    <select class="enemy-faction-select">
                         <option value="none">None</option>
                     </select>
                 </div>
                 <div class="input-group">
                     <label>Type</label>
-                    <select id="enemy-type">
+                    <select class="enemy-type-select">
                         <option value="none">None</option>
                     </select>
                 </div>
                 <div class="input-group">
                     <label>Level</label>
-                    <input type="number" id="enemy-level" value="50" min="1" max="9999">
+                    <input type="number" class="enemy-level-input" value="50" min="1" max="9999">
                 </div>
                 <div class="input-group">
                     <label>Armor Override</label>
-                    <input type="number" id="enemy-armor" placeholder="Auto">
+                    <input type="number" class="enemy-armor-input" placeholder="Auto">
                 </div>
             </div>
+                </div><!-- end main-grid -->
+            </div><!-- end build -->
+        </div><!-- end builds-container -->
 
-            <!-- Calculate Button -->
-            <button id="calculate-btn" style="grid-column: 1 / -1; margin-top: 0;">Calculate Damage</button>
+        <!-- Add Build Button -->
+        <button class="add-build-btn" id="add-build-btn">+ Add Build</button>
 
-            <!-- Results Section -->
-            <div class="results">
-                <div class="section-title">Damage Output</div>
-                <div class="results-grid" id="results-grid">
-                    <!-- Results will be dynamically populated -->
-                </div>
-                <div style="margin-top: 10px;">
-                    <div class="result-label" style="margin-bottom: 4px;">Element Distribution</div>
-                    <div class="element-bar" id="element-bar"></div>
-                </div>
+        <!-- Calculate Button -->
+        <button id="calculate-btn">Calculate Damage</button>
+
+        <!-- Results Section -->
+        <div class="results">
+            <div class="section-title">Damage Output</div>
+            <div class="results-tabs" id="results-tabs">
+                <!-- Tabs will be dynamically populated -->
+            </div>
+            <div id="results-content-container">
+                <!-- Result contents will be dynamically populated -->
             </div>
         </div>
     </div>
@@ -404,16 +514,112 @@
             ];
 
             let availableBuffs = [];
+            let buildIdCounter = 1;
 
             loadEnemyTypes();
             loadElementOptions();
             initializeDefaultElements();
             loadAvailableBuffs();
 
-            const modSearch = document.getElementById('mod-search');
-            const searchResults = document.getElementById('mod-search-results');
-            const buffSearch = document.getElementById('buff-search');
-            const buffSearchResults = document.getElementById('buff-search-results');
+            // Initialize event listeners for the first build
+            const firstBuild = document.querySelector('.build[data-build-id="1"]');
+            initializeBuildEventListeners(firstBuild);
+
+            // Attach remove button listener for first build
+            const firstRemoveBtn = firstBuild.querySelector('.remove-build-btn');
+            if (firstRemoveBtn) {
+                firstRemoveBtn.addEventListener('click', function() {
+                    removeBuild(firstBuild);
+                });
+            }
+
+            // Update remove button visibility initially
+            updateRemoveButtons();
+
+            function initializeBuildEventListeners(build) {
+                const buildId = build.getAttribute('data-build-id');
+                const modSearch = build.querySelector('.mod-search-input');
+                const searchResults = build.querySelector('.mod-search-results');
+                const buffSearch = build.querySelector('.buff-search-input');
+                const buffSearchResults = build.querySelector('.buff-search-results');
+                const addElementBtn = build.querySelector('.add-element-btn');
+
+                if (modSearch && searchResults) {
+                    modSearch.addEventListener('input', function() {
+                        const query = this.value.trim();
+                        if (query.length < 1) {
+                            searchResults.style.display = 'none';
+                            return;
+                        }
+
+                        fetch(`/api/search-mods?q=${encodeURIComponent(query)}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                searchResults.innerHTML = '';
+                                if (!data.success || data.mods.length === 0) {
+                                    searchResults.innerHTML = '<div class="search-result-item">No mods found</div>';
+                                } else {
+                                    data.mods.forEach(mod => {
+                                        const item = document.createElement('div');
+                                        item.className = 'search-result-item';
+                                        item.textContent = mod.name;
+                                        item.setAttribute('data-mod-id', mod.id);
+                                        item.addEventListener('click', function() {
+                                            addModToBuild(build, mod.id, mod.name);
+                                            modSearch.value = '';
+                                            searchResults.style.display = 'none';
+                                        });
+                                        searchResults.appendChild(item);
+                                    });
+                                }
+                                searchResults.style.display = 'block';
+                            })
+                            .catch(error => {
+                                console.error('Search mods error:', error);
+                                searchResults.innerHTML = '<div class="search-result-item">Search error</div>';
+                                searchResults.style.display = 'block';
+                            });
+                    });
+                }
+
+                if (buffSearch && buffSearchResults) {
+                    buffSearch.addEventListener('input', function() {
+                        const query = this.value.trim().toLowerCase();
+                        if (query.length < 1) {
+                            buffSearchResults.style.display = 'none';
+                            return;
+                        }
+
+                        const matchingBuffs = availableBuffs.filter(buff =>
+                            buff.name.toLowerCase().includes(query)
+                        );
+
+                        buffSearchResults.innerHTML = '';
+                        if (matchingBuffs.length === 0) {
+                            buffSearchResults.innerHTML = '<div class="search-result-item">No buffs found</div>';
+                        } else {
+                            matchingBuffs.forEach(buff => {
+                                const item = document.createElement('div');
+                                item.className = 'search-result-item';
+                                item.textContent = buff.name;
+                                item.addEventListener('click', function() {
+                                    addBuffToBuild(build, buff.name, buff.type);
+                                    buffSearch.value = '';
+                                    buffSearchResults.style.display = 'none';
+                                });
+                                buffSearchResults.appendChild(item);
+                            });
+                        }
+                        buffSearchResults.style.display = 'block';
+                    });
+                }
+
+                if (addElementBtn) {
+                    addElementBtn.addEventListener('click', function() {
+                        addWeaponElementForBuild(build);
+                    });
+                }
+            }
 
             function loadEnemyTypes() {
                 // Load enemy factions
@@ -421,13 +627,16 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            const factionSelect = document.getElementById('enemy-faction');
-                            factionSelect.innerHTML = '';
-                            data.enemy_factions.forEach(faction => {
-                                const option = document.createElement('option');
-                                option.value = faction;
-                                option.textContent = faction.charAt(0).toUpperCase() + faction.slice(1);
-                                factionSelect.appendChild(option);
+                            // Populate all faction selects (for all builds)
+                            const factionSelects = document.querySelectorAll('.enemy-faction-select');
+                            factionSelects.forEach(factionSelect => {
+                                factionSelect.innerHTML = '';
+                                data.enemy_factions.forEach(faction => {
+                                    const option = document.createElement('option');
+                                    option.value = faction;
+                                    option.textContent = faction.charAt(0).toUpperCase() + faction.slice(1);
+                                    factionSelect.appendChild(option);
+                                });
                             });
                         }
                     })
@@ -438,13 +647,16 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            const typeSelect = document.getElementById('enemy-type');
-                            typeSelect.innerHTML = '';
-                            data.enemy_types.forEach(type => {
-                                const option = document.createElement('option');
-                                option.value = type;
-                                option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-                                typeSelect.appendChild(option);
+                            // Populate all type selects (for all builds)
+                            const typeSelects = document.querySelectorAll('.enemy-type-select');
+                            typeSelects.forEach(typeSelect => {
+                                typeSelect.innerHTML = '';
+                                data.enemy_types.forEach(type => {
+                                    const option = document.createElement('option');
+                                    option.value = type;
+                                    option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+                                    typeSelect.appendChild(option);
+                                });
                             });
                         }
                     })
@@ -464,30 +676,56 @@
             }
 
             function loadElementOptions() {
-                const elementSelect = document.getElementById('element-select');
-                availableElements.forEach(element => {
-                    const option = document.createElement('option');
-                    option.value = element;
-                    option.textContent = element.charAt(0).toUpperCase() + element.slice(1).replace('_', ' ');
-                    elementSelect.appendChild(option);
+                // Populate all element selects (for all builds)
+                const elementSelects = document.querySelectorAll('.element-select');
+                elementSelects.forEach(elementSelect => {
+                    elementSelect.innerHTML = '<option value="">Add element...</option>';
+                    availableElements.forEach(element => {
+                        const option = document.createElement('option');
+                        option.value = element;
+                        option.textContent = element.charAt(0).toUpperCase() + element.slice(1).replace('_', ' ');
+                        elementSelect.appendChild(option);
+                    });
                 });
             }
 
             function initializeDefaultElements() {
-                // Add default 100 impact
-                addWeaponElementProgrammatic('impact', 100);
+                // Add default 100 impact to first build
+                const firstBuild = document.querySelector('.build[data-build-id="1"]');
+                if (firstBuild) {
+                    addWeaponElementForBuild(firstBuild, 'impact', 100);
+                }
             }
 
-            function addWeaponElementProgrammatic(elementName, value) {
+            function addWeaponElementForBuild(build, elementName, value) {
+                const weaponElements = build.querySelector('.weapon-elements-container');
+
+                if (!weaponElements) return;
+
+                // If elementName and value are not provided, get them from inputs
+                if (elementName === undefined) {
+                    const elementSelect = build.querySelector('.element-select');
+                    const elementValue = build.querySelector('.element-value-input');
+                    elementName = elementSelect.value;
+                    value = parseFloat(elementValue.value);
+
+                    if (!elementName || isNaN(value) || value <= 0) {
+                        return;
+                    }
+
+                    // Reset inputs after adding
+                    elementSelect.value = '';
+                    elementValue.value = '';
+                }
+
                 // Check if element already exists
-                const existingElements = document.querySelectorAll('.element-item');
+                const existingElements = weaponElements.querySelectorAll('.element-item');
                 for (let item of existingElements) {
                     if (item.dataset.element === elementName) {
                         return; // Don't add duplicate
                     }
                 }
 
-                const weaponElements = document.getElementById('weapon-elements');
                 const elementItem = document.createElement('div');
                 elementItem.className = 'element-item';
                 elementItem.dataset.element = elementName;
@@ -511,105 +749,18 @@
                 weaponElements.appendChild(elementItem);
             }
 
-            function addWeaponElement() {
-                const elementSelect = document.getElementById('element-select');
-                const elementValue = document.getElementById('element-value');
-                const selectedElement = elementSelect.value;
-                const value = parseFloat(elementValue.value);
-
-                if (!selectedElement || isNaN(value) || value <= 0) {
-                    return;
-                }
-
-                addWeaponElementProgrammatic(selectedElement, value);
-
-                // Reset inputs
-                elementSelect.value = '';
-                elementValue.value = '';
-            }
-
-            document.getElementById('add-element-btn').addEventListener('click', addWeaponElement);
-
-            modSearch.addEventListener('input', function() {
-                const query = this.value.trim();
-                if (query.length < 2) {
-                    searchResults.style.display = 'none';
-                    return;
-                }
-
-                fetch(`/api/search-mods?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        searchResults.innerHTML = '';
-                        if (!data.success || data.mods.length === 0) {
-                            searchResults.innerHTML = '<div class="search-result-item">No mods found</div>';
-                        } else {
-                            data.mods.forEach(mod => {
-                                const item = document.createElement('div');
-                                item.className = 'search-result-item';
-                                item.textContent = mod.name;
-                                item.setAttribute('data-mod-id', mod.id);
-                                item.addEventListener('click', function() {
-                                    addModToSelection(mod.id, mod.name);
-                                    modSearch.value = '';
-                                    searchResults.style.display = 'none';
-                                });
-                                searchResults.appendChild(item);
-                            });
-                        }
-                        searchResults.style.display = 'block';
-                    })
-                    .catch(error => {
-                        console.error('Search mods error:', error);
-                        searchResults.innerHTML = '<div class="search-result-item">Search error</div>';
-                        searchResults.style.display = 'block';
-                    });
-            });
-
+            // Global click handler to close search results
             document.addEventListener('click', function(e) {
-                if (!modSearch.contains(e.target) && !searchResults.contains(e.target)) {
-                    searchResults.style.display = 'none';
+                if (!e.target.closest('.mod-search') && !e.target.closest('.search-results')) {
+                    document.querySelectorAll('.search-results').forEach(sr => sr.style.display = 'none');
                 }
-                if (!buffSearch.contains(e.target) && !buffSearchResults.contains(e.target)) {
-                    buffSearchResults.style.display = 'none';
-                }
-            });
-
-            // Buff search functionality
-            buffSearch.addEventListener('input', function() {
-                const query = this.value.trim().toLowerCase();
-                if (query.length < 1) {
-                    buffSearchResults.style.display = 'none';
-                    return;
-                }
-
-                const matchingBuffs = availableBuffs.filter(buff =>
-                    buff.name.toLowerCase().includes(query)
-                );
-
-                buffSearchResults.innerHTML = '';
-                if (matchingBuffs.length === 0) {
-                    buffSearchResults.innerHTML = '<div class="search-result-item">No buffs found</div>';
-                } else {
-                    matchingBuffs.forEach(buff => {
-                        const item = document.createElement('div');
-                        item.className = 'search-result-item';
-                        item.textContent = buff.name;
-                        item.addEventListener('click', function() {
-                            addBuffToSelection(buff.name, buff.type);
-                            buffSearch.value = '';
-                            buffSearchResults.style.display = 'none';
-                        });
-                        buffSearchResults.appendChild(item);
-                    });
-                }
-                buffSearchResults.style.display = 'block';
             });
 
             document.getElementById('calculate-btn').addEventListener('click', calculateDamage);
+            document.getElementById('add-build-btn').addEventListener('click', addBuild);
 
-            function addModToSelection(modId, modName) {
-                const selectedMods = document.getElementById('selected-mods');
+            function addModToBuild(build, modId, modName) {
+                const selectedMods = build.querySelector('.selected-mods-container');
                 const modItem = document.createElement('div');
                 modItem.className = 'mod-item';
                 modItem.innerHTML = `
@@ -622,16 +773,17 @@
                 selectedMods.appendChild(modItem);
             }
 
-            function addBuffToSelection(buffName, buffType) {
-                // Check if buff already exists
-                const existingBuffs = document.querySelectorAll('.buff-item');
+            function addBuffToBuild(build, buffName, buffType) {
+                const selectedBuffs = build.querySelector('.selected-buffs-container');
+
+                // Check if buff already exists in this build
+                const existingBuffs = selectedBuffs.querySelectorAll('.buff-item');
                 for (let item of existingBuffs) {
                     if (item.dataset.buffName === buffName) {
                         return; // Don't add duplicate
                     }
                 }
 
-                const selectedBuffs = document.getElementById('selected-buffs');
                 const buffItem = document.createElement('div');
                 buffItem.className = 'mod-item buff-item';
                 buffItem.dataset.buffName = buffName;
@@ -658,70 +810,276 @@
                 selectedBuffs.appendChild(buffItem);
             }
 
-            function calculateDamage() {
-                // Collect weapon elements from the dynamic list and convert from percentage
-                const elements = {};
-                document.querySelectorAll('.element-item').forEach(item => {
-                    const elementName = item.dataset.element;
-                    const elementValue = parseFloat(item.dataset.value) / 100; // Convert percentage to decimal
-                    elements[elementName] = elementValue;
+            function addBuild() {
+                buildIdCounter++;
+                const container = document.getElementById('builds-container');
+                const lastBuild = container.querySelector('.build:last-child');
+
+                // Clone the last build
+                const newBuild = lastBuild.cloneNode(true);
+                newBuild.setAttribute('data-build-id', buildIdCounter);
+
+                // Update build title
+                const titleDiv = newBuild.querySelector('.build-title');
+                titleDiv.textContent = `Build ${buildIdCounter}`;
+
+                // Attach remove button listener
+                const removeBtn = newBuild.querySelector('.remove-build-btn');
+                removeBtn.addEventListener('click', function() {
+                    removeBuild(newBuild);
                 });
 
-                const weaponConfig = {
-                    damage: parseFloat(document.getElementById('base-damage').value),
-                    attack_speed: parseFloat(document.getElementById('fire-rate').value),
-                    multishot: parseFloat(document.getElementById('multishot').value),
-                    critical_chance: parseFloat(document.getElementById('crit-chance').value) / 100,
-                    critical_damage: parseFloat(document.getElementById('crit-multiplier').value),
-                    status_chance: parseFloat(document.getElementById('status-chance').value) / 100,
-                    elements: elements
-                };
+                // Initialize event listeners for the new build
+                initializeBuildEventListeners(newBuild);
 
-                const mods = [];
-                document.querySelectorAll('.mod-item').forEach(item => {
-                    const modId = item.querySelector('.remove-btn').getAttribute('data-mod-id');
-                    mods.push(modId);
-                });
+                container.appendChild(newBuild);
 
-                const enemyConfig = {
-                    faction: document.getElementById('enemy-faction').value,
-                    type: document.getElementById('enemy-type').value
-                };
+                // Populate dropdowns for the new build
+                loadEnemyTypes();
+                loadElementOptions();
 
-                // Collect in-game buffs from the dynamic list
-                const inGameBuffs = {};
-                document.querySelectorAll('.buff-item').forEach(item => {
-                    const buffName = item.dataset.buffName;
-                    const buffInput = item.querySelector('.buff-value-input');
-                    const buffValue = buffInput.value;
+                // Show remove button on all builds if there's more than one
+                updateRemoveButtons();
+            }
 
-                    // Parse value based on type (check step attribute)
-                    if (buffInput.step === '1') {
-                        inGameBuffs[buffName] = parseInt(buffValue);
+            function removeBuild(buildElement) {
+                const container = document.getElementById('builds-container');
+                const builds = container.querySelectorAll('.build');
+
+                if (builds.length <= 1) {
+                    alert('Cannot remove the last build');
+                    return;
+                }
+
+                container.removeChild(buildElement);
+                updateRemoveButtons();
+            }
+
+            function updateRemoveButtons() {
+                const container = document.getElementById('builds-container');
+                const builds = container.querySelectorAll('.build');
+
+                // Hide remove button only if there's exactly one build
+                builds.forEach((build) => {
+                    const removeBtn = build.querySelector('.remove-build-btn');
+                    if (builds.length > 1) {
+                        removeBtn.style.display = 'flex';
                     } else {
-                        inGameBuffs[buffName] = parseFloat(buffValue);
+                        removeBtn.style.display = 'none';
+                    }
+                });
+            }
+
+            function calculateDamage() {
+                const builds = document.querySelectorAll('.build');
+                const allCalculations = [];
+
+                // Process each build
+                builds.forEach((build, index) => {
+                    const buildId = build.getAttribute('data-build-id');
+                    const buildName = build.querySelector('.build-title').textContent || `Build ${buildId}`;
+
+                    // Collect weapon elements from the dynamic list and convert from percentage
+                    const elements = {};
+                    build.querySelectorAll('.element-item').forEach(item => {
+                        const elementName = item.dataset.element;
+                        const elementValue = parseFloat(item.dataset.value) / 100; // Convert percentage to decimal
+                        elements[elementName] = elementValue;
+                    });
+
+                    // Get weapon config - need to query within this build
+                    const weaponConfig = {
+                        damage: parseFloat(build.querySelector('.base-damage-input').value || 100),
+                        attack_speed: parseFloat(build.querySelector('.fire-rate-input').value || 1),
+                        multishot: parseFloat(build.querySelector('.multishot-input').value || 1),
+                        critical_chance: parseFloat(build.querySelector('.crit-chance-input').value || 0) / 100,
+                        critical_damage: parseFloat(build.querySelector('.crit-multiplier-input').value || 2),
+                        status_chance: parseFloat(build.querySelector('.status-chance-input').value || 0) / 100,
+                        elements: elements
+                    };
+
+                    // Collect mods
+                    const mods = [];
+                    build.querySelectorAll('.mod-item:not(.buff-item)').forEach(item => {
+                        const modId = item.querySelector('.remove-btn').getAttribute('data-mod-id');
+                        if (modId) {
+                            mods.push(modId);
+                        }
+                    });
+
+                    // Get enemy config
+                    const enemyConfig = {
+                        faction: build.querySelector('.enemy-faction-select').value || 'none',
+                        type: build.querySelector('.enemy-type-select').value || 'none'
+                    };
+
+                    // Collect in-game buffs
+                    const inGameBuffs = {};
+                    build.querySelectorAll('.buff-item').forEach(item => {
+                        const buffName = item.dataset.buffName;
+                        const buffInput = item.querySelector('.buff-value-input');
+                        const buffValue = buffInput.value;
+
+                        // Parse value based on type (check step attribute)
+                        if (buffInput.step === '1') {
+                            inGameBuffs[buffName] = parseInt(buffValue);
+                        } else {
+                            inGameBuffs[buffName] = parseFloat(buffValue);
+                        }
+                    });
+
+                    // Create calculation promise for this build
+                    const calcPromise = fetch('/api/calculate-damage', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            weapon: weaponConfig,
+                            mods: mods,
+                            enemy: enemyConfig,
+                            in_game_buffs: inGameBuffs
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) throw new Error(data.error || 'Calculation failed');
+                        return {
+                            buildName: buildName,
+                            buildId: buildId,
+                            data: data
+                        };
+                    });
+
+                    allCalculations.push(calcPromise);
+                });
+
+                // Wait for all calculations to complete
+                Promise.all(allCalculations)
+                    .then(results => {
+                        displayTabbedResults(results);
+                    })
+                    .catch(error => {
+                        console.error('Calculate damage error:', error);
+                        alert('Calculation failed: ' + error.message);
+                    });
+            }
+
+            function displayTabbedResults(results) {
+                const tabsContainer = document.getElementById('results-tabs');
+                const contentContainer = document.getElementById('results-content-container');
+
+                // Clear existing tabs and content
+                tabsContainer.innerHTML = '';
+                contentContainer.innerHTML = '';
+
+                // Create tabs and content for each build
+                results.forEach((result, index) => {
+                    // Create tab
+                    const tab = document.createElement('div');
+                    tab.className = 'result-tab' + (index === 0 ? ' active' : '');
+                    tab.textContent = result.buildName;
+                    tab.dataset.buildId = result.buildId;
+                    tab.addEventListener('click', function() {
+                        switchResultTab(result.buildId);
+                    });
+                    tabsContainer.appendChild(tab);
+
+                    // Create content
+                    const content = document.createElement('div');
+                    content.className = 'result-content' + (index === 0 ? ' active' : '');
+                    content.dataset.buildId = result.buildId;
+                    content.innerHTML = generateResultContent(result.data);
+                    contentContainer.appendChild(content);
+                });
+            }
+
+            function switchResultTab(buildId) {
+                // Update tab active state
+                document.querySelectorAll('.result-tab').forEach(tab => {
+                    if (tab.dataset.buildId === buildId) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
                     }
                 });
 
-                fetch('/api/calculate-damage', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        weapon: weaponConfig,
-                        mods: mods,
-                        enemy: enemyConfig,
-                        in_game_buffs: inGameBuffs
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.success) throw new Error(data.error || 'Calculation failed');
-                    displayResults(data);
-                })
-                .catch(error => {
-                    console.error('Calculate damage error:', error);
-                    alert('Calculation failed: ' + error.message);
+                // Update content active state
+                document.querySelectorAll('.result-content').forEach(content => {
+                    if (content.dataset.buildId === buildId) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
                 });
+            }
+
+            function generateResultContent(data) {
+                let html = '<div class="results-grid">';
+
+                // Helper function to format numbers
+                function formatValue(value) {
+                    if (typeof value === 'number') {
+                        return value.toFixed(2);
+                    }
+                    return value;
+                }
+
+                // Display all damage values from backend
+                if (data.damage) {
+                    for (const [key, value] of Object.entries(data.damage)) {
+                        html += `
+                            <div class="result-item">
+                                <div class="result-label">${key}</div>
+                                <div class="result-value">${formatValue(value)}</div>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Display all stats values from backend
+                if (data.stats) {
+                    for (const [key, value] of Object.entries(data.stats)) {
+                        // Skip elemental_total as it's complex object
+                        if (typeof value !== 'object') {
+                            html += `
+                                <div class="result-item">
+                                    <div class="result-label">${key}</div>
+                                    <div class="result-value">${formatValue(value)}</div>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+
+                html += '</div>';
+
+                // Add element bar
+                html += '<div style="margin-top: 10px;"><div class="result-label" style="margin-bottom: 4px;">Element Distribution</div><div class="element-bar">';
+
+                if (data.buffs_applied && data.buffs_applied.static && data.buffs_applied.static.elements) {
+                    const elements = data.buffs_applied.static.elements;
+                    const totalElem = Object.values(elements).reduce((a, b) => a + b, 0);
+
+                    if (totalElem > 0) {
+                        for (const [elemName, elemValue] of Object.entries(elements)) {
+                            if (elemValue > 0) {
+                                const percentage = (elemValue / totalElem) * 100;
+                                html += `
+                                    <div class="element-segment" style="width: ${percentage}%; background-color: ${getElementColor(elemName)};">
+                                        ${elemName}: ${percentage.toFixed(0)}%
+                                    </div>
+                                `;
+                            }
+                        }
+                    } else {
+                        html += '<div style="padding: 4px; text-align: center;">No elemental damage</div>';
+                    }
+                } else {
+                    html += '<div style="padding: 4px; text-align: center;">No elemental data</div>';
+                }
+
+                html += '</div></div>';
+
+                return html;
             }
 
             function displayResults(data) {
