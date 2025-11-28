@@ -108,105 +108,147 @@ class ModParser:
                 continue
 
             mod = self.mod_data[mod_name]
-            mod_element_order = self._apply_mod_to_buff(mod_name, mod, in_game_buff)
+            mod_element_order = self._apply_stats_to_buff(mod, in_game_buff, mod_name)
             element_order_from_mods.extend(mod_element_order)
 
         # Process in-game stats
         element_order_from_igb = []
         if in_game_stats:
-            element_order_from_igb = self._apply_in_game_stats(in_game_stats, in_game_buff)
+            element_order_from_igb = self._apply_stats_to_buff(
+                in_game_stats, in_game_buff
+            )
 
         return in_game_buff, element_order_from_mods, element_order_from_igb
 
-    def _apply_mod_to_buff(self, mod_name: str, mod: dict, in_game_buff: InGameBuff) -> list[str]:
+    def _add_value_to_field(
+        self, in_game_buff: InGameBuff, field_name: str, value: float
+    ) -> None:
         """
-        Apply a single mod's effects to the InGameBuff.
+        Add a value to a field in InGameBuff.
 
         Args:
-            mod_name: Name of the mod
-            mod: Mod data dictionary
             in_game_buff: InGameBuff to modify
+            field_name: Name of the field to modify
+            value: Value to add
+        """
+        if hasattr(in_game_buff, field_name):
+            current_value = getattr(in_game_buff, field_name)
+            if isinstance(current_value, (int, float)):
+                setattr(in_game_buff, field_name, current_value + value)
+
+    def _add_element_to_buff(
+        self, in_game_buff: InGameBuff, element_name: str, value: float
+    ) -> bool:
+        """
+        Add an element value to InGameBuff.elements.
+
+        Args:
+            in_game_buff: InGameBuff to modify
+            element_name: Name of the element
+            value: Value to add
 
         Returns:
-            List of element names added by this mod (for element order tracking)
+            True if element was added with value > 0 (for tracking element order)
         """
-        mod_element_order = []
+        if hasattr(in_game_buff.elements, element_name):
+            current_value = getattr(in_game_buff.elements, element_name)
+            setattr(in_game_buff.elements, element_name, current_value + value)
+            return value > 0
+        return False
 
-        for stat_key, value in mod.items():
-            # Skip non-stat fields
-            if stat_key in ["max_level", "special_notes", "on_headshot", "on_kill", "on_critical_hit"]:
+    def _add_faction_to_buff(
+        self, in_game_buff: InGameBuff, faction_name: str, value: float
+    ) -> None:
+        """
+        Add a faction damage bonus to InGameBuff.prejudice.
+
+        Args:
+            in_game_buff: InGameBuff to modify
+            faction_name: Name of the faction
+            value: Value to add
+        """
+        if faction_name in in_game_buff.prejudice:
+            in_game_buff.prejudice[faction_name] += value
+        else:
+            in_game_buff.prejudice[faction_name] = value
+
+    def _apply_stats_to_buff(
+        self, stats: dict, in_game_buff: InGameBuff, mod_name: str = None
+    ) -> list[str]:
+        """
+        Apply stats (from mods or in-game sources) to InGameBuff.
+
+        This unified method handles both:
+        - Mod stats with mapped keys (e.g., "damage_vs_grineer" -> "grineer")
+        - In-game stats with direct keys and nested dicts (e.g., "elements": {...})
+
+        Args:
+            stats: Dictionary of stats to apply (mod data or in-game stats)
+            in_game_buff: InGameBuff to modify
+            mod_name: Optional mod name for callback registration
+
+        Returns:
+            List of element names added (for element order tracking)
+        """
+        # TODO: clean this a bit
+
+        element_order = []
+
+        for stat_key, value in stats.items():
+            # Skip non-stat fields (mod-specific)
+            if stat_key in [
+                "max_level",
+                "special_notes",
+                "on_headshot",
+                "on_kill",
+                "on_critical_hit",
+            ]:
                 continue
 
-            # Handle special cases that shouldn't be in StaticBuff
+            # Skip special cases that shouldn't be in InGameBuff (mod-specific)
             if "per_status" in stat_key or "per_combo" in stat_key:
                 continue
 
-            # Map to general stat
+            # Try mod stat mappings first
             if stat_key in STAT_MAPPING:
                 field_name = STAT_MAPPING[stat_key]
-                current_value = getattr(in_game_buff, field_name)
-                setattr(in_game_buff, field_name, current_value + value)
+                self._add_value_to_field(in_game_buff, field_name, value)
 
-            # Map to element
+            # Try element mappings
             elif stat_key in ELEMENT_MAPPING:
                 element_name = ELEMENT_MAPPING[stat_key]
-                current_value = getattr(in_game_buff.elements, element_name)
-                setattr(in_game_buff.elements, element_name, current_value + value)
+                if self._add_element_to_buff(in_game_buff, element_name, value):
+                    element_order.append(element_name)
 
-                # Track all elements for combination order (skip if value is 0)
-                if value > 0:
-                    mod_element_order.append(element_name)
-
-            # Map to faction (prejudice)
+            # Try faction mappings
             elif stat_key in FACTION_MAPPING:
                 faction_name = FACTION_MAPPING[stat_key]
-                if faction_name in in_game_buff.prejudice:
-                    in_game_buff.prejudice[faction_name] += value
-                else:
-                    in_game_buff.prejudice[faction_name] = value
+                self._add_faction_to_buff(in_game_buff, faction_name, value)
 
-            # Check if it's an attribute in StaticBuff that we haven't explicitly mapped
+            # Handle nested elements dictionary (in-game stats)
+            elif stat_key == "elements" and isinstance(value, dict):
+                for elem_key, elem_value in value.items():
+                    if self._add_element_to_buff(in_game_buff, elem_key, elem_value):
+                        element_order.append(elem_key)
+
+            # Handle nested prejudice dictionary (in-game stats)
+            elif stat_key == "prejudice" and isinstance(value, dict):
+                for faction_key, faction_value in value.items():
+                    self._add_faction_to_buff(in_game_buff, faction_key, faction_value)
+
+            # Try direct field mapping (in-game stats or unmapped mod stats)
             else:
                 if hasattr(in_game_buff, stat_key):
-                    current_value = getattr(in_game_buff, stat_key)
-                    if isinstance(current_value, (int, float)):
-                        setattr(in_game_buff, stat_key, current_value + value)
+                    self._add_value_to_field(in_game_buff, stat_key, value)
+                elif mod_name is None:
+                    # Only warn for in-game stats, not for unmapped mod keys
+                    print(f"Warning: Stat '{stat_key}' not found in InGameBuff")
 
-        # callbacks
-        if mod_name in CALLBACK_MAPPING:
+        # Add callbacks (mod-specific)
+        if mod_name and mod_name in CALLBACK_MAPPING:
             in_game_buff.callbacks.append(CALLBACK_MAPPING[mod_name])
 
-        return mod_element_order
-
-    def _apply_in_game_stats(self, in_game_stats: dict, in_game_buff: InGameBuff) -> list[str]:
-        """
-        Apply in-game stats to InGameBuff.
-
-        Args:
-            in_game_stats: Dictionary of in-game stats
-            in_game_buff: InGameBuff to modify
-
-        Returns:
-            List of element names from in-game buffs (for element order tracking)
-        """
-        igb_element_order = []
-
-        # Direct mappings for InGameBuff fields
-        for key, value in in_game_stats.items():
-            if key == "elements":
-                # Handle element dictionary
-                for elem_key, elem_value in value.items():
-                    if hasattr(in_game_buff.elements, elem_key):
-                        setattr(in_game_buff.elements, elem_key, elem_value)
-                        # Track all elements for combination order (skip if value is 0)
-                        if elem_value > 0:
-                            igb_element_order.append(elem_key)
-            elif hasattr(in_game_buff, key):
-                setattr(in_game_buff, key, value)
-            else:
-                print(f"Warning: In-game stat '{key}' not found in InGameBuff")
-
-        return igb_element_order
+        return element_order
 
     def get_available_mods(self) -> list[str]:
         """Get list of all available mod names."""
