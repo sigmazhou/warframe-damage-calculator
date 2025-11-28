@@ -355,6 +355,20 @@
             color: var(--accent-color);
         }
 
+        .stats-grid .stat-item {
+            opacity: 0.85;
+        }
+
+        .stats-grid .result-label {
+            font-size: 10px;
+            color: #999;
+        }
+
+        .stats-grid .result-value {
+            font-size: 14px;
+            color: #aaa;
+        }
+
         .element-bar {
             display: flex;
             height: 20px;
@@ -1007,7 +1021,7 @@
             }
 
             function generateResultContent(data) {
-                let html = '<div class="results-grid">';
+                let html = '';
 
                 // Helper function to format numbers
                 function formatValue(value) {
@@ -1017,47 +1031,91 @@
                     return value;
                 }
 
-                // Display all damage values from backend
+                // Helper function to format label names
+                function formatLabel(key) {
+                    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                }
+
+                // === DAMAGE SECTION ===
+                html += '<div style="margin-bottom: 20px;">';
+                html += '<h3 style="color: var(--accent-color); margin-bottom: 10px; font-size: 14px;">Damage Output</h3>';
+                html += '<div class="results-grid">';
+
                 if (data.damage) {
                     for (const [key, value] of Object.entries(data.damage)) {
                         html += `
                             <div class="result-item">
-                                <div class="result-label">${key}</div>
+                                <div class="result-label">${formatLabel(key)}</div>
                                 <div class="result-value">${formatValue(value)}</div>
                             </div>
                         `;
                     }
                 }
+                html += '</div></div>';
 
-                // Display all stats values from backend
+                // === ELEMENT BREAKDOWN SECTION ===
+                if (data.element_breakdown && Object.keys(data.element_breakdown).length > 0) {
+                    html += '<div style="margin-bottom: 20px;">';
+                    html += '<h3 style="color: var(--accent-color); margin-bottom: 10px; font-size: 14px;">Element Breakdown</h3>';
+
+                    const totalElem = Object.values(data.element_breakdown).reduce((a, b) => a + b, 0);
+
+                    if (totalElem > 0) {
+                        html += '<div class="element-bar">';
+                        for (const [elemName, elemValue] of Object.entries(data.element_breakdown)) {
+                            if (elemValue > 0) {
+                                const percentage = (elemValue / totalElem) * 100;
+                                html += `
+                                    <div class="element-segment" style="width: ${percentage}%; background-color: ${getElementColor(elemName)};">
+                                        ${formatLabel(elemName)}: ${percentage.toFixed(1)}%
+                                    </div>
+                                `;
+                            }
+                        }
+                        html += '</div>';
+                    } else {
+                        html += '<div style="padding: 8px; text-align: center; color: #888;">No elemental damage</div>';
+                    }
+                    html += '</div>';
+                }
+
+                // === STATS SECTION (Secondary) ===
+                html += '<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">';
+                html += '<h3 style="color: #888; margin-bottom: 10px; font-size: 13px;">Final Stats</h3>';
+                html += '<div class="results-grid stats-grid">';
+
                 if (data.stats) {
                     for (const [key, value] of Object.entries(data.stats)) {
-                        // Skip elemental_total as it's complex object
                         if (typeof value !== 'object') {
                             html += `
-                                <div class="result-item">
-                                    <div class="result-label">${key}</div>
+                                <div class="result-item stat-item">
+                                    <div class="result-label">${formatLabel(key)}</div>
                                     <div class="result-value">${formatValue(value)}</div>
                                 </div>
                             `;
                         }
                     }
                 }
-
-                html += '</div>';
-
-                // Add element bar
-                // TODO use stats
+                html += '</div></div>';
 
                 return html;
             }
 
             function getElementColor(elemName) {
                 const colors = {
-                    impact: '#808080', puncture: '#FFD700', slash: '#DC143C',
-                    cold: '#00BFFF', electricity: '#00FF00', heat: '#FF4500', toxin: '#32CD32',
-                    blast: '#FF6347', corrosive: '#9ACD32', gas: '#98FB98',
-                    magnetic: '#1E90FF', radiation: '#FFD700', viral: '#00FF7F'
+                    impact: '#7A9FAB',      // grey-ish blue
+                    puncture: '#B8B888',    // greyish yellow
+                    slash: '#B87A7A',       // greyish red
+                    cold: '#4A9EFF',        // blue
+                    electricity: '#A020F0', // purple
+                    heat: '#FF8C00',        // orange
+                    toxin: '#4CAF50',       // green
+                    blast: '#A52A2A',       // dark red
+                    corrosive: '#ADFF2F',   // green-yellow
+                    gas: '#48D1CC',         // green-blue
+                    magnetic: '#999999',    // grey
+                    radiation: '#FFD700',   // yellow
+                    viral: '#FF69B4'        // pink
                 };
                 return colors[elemName] || '#666';
             }

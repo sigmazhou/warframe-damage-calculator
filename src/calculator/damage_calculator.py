@@ -26,6 +26,7 @@ class DamageCalculator:
         static_buff: StaticBuff,
         in_game_buff: InGameBuff,
         enemy_stat: EnemyStat,
+        element_order: list[str] = None,
     ):
         """
         Initialize the damage calculator with weapon stats and modifiers.
@@ -35,17 +36,23 @@ class DamageCalculator:
             static_buff: Buffs from mods
             in_game_buff: In-game buffs like galvanized stacks, pet bonuses, debuff count, final multiplier
             enemy_stat: Enemy faction and characteristics
+            element_order: List of base elements in order for combination (e.g., ["heat", "toxin"])
         """
         self.weapon_stat = weapon_stat
         self.static_buff = static_buff
         self.in_game_buff = in_game_buff
         self.enemy_stat = enemy_stat
+        self.element_order = element_order or []
         self.final_buff = in_game_buff + static_buff
 
         # apply IGB callbacks
         for callback in self.final_buff.callbacks:
             if callback.type == CallbackType.IN_GAME_BUFF:
                 callback(self.final_buff)
+
+        if self.element_order:
+            # Apply element combination directly to final_buff.elements
+            self.final_buff.elements.combine_elements(self.element_order)
 
     def calc_elem(self) -> float:
         """

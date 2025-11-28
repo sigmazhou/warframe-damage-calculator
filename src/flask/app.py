@@ -328,6 +328,13 @@ def calculate_damage():
 
         # Parse weapon stats
         weapon_data = data.get('weapon', {})
+
+        # Extract element order from weapon_data before creating WeaponStat
+        # Dictionary maintains insertion order in Python 3.7+, preserving user's selection order
+        # Skip elements with 0 value
+        weapon_elements_dict = weapon_data.get('elements', {})
+        element_order_from_weapon = [k for k, v in weapon_elements_dict.items() if v > 0]
+
         weapon = WeaponStat(
             damage=weapon_data.get('damage', 1),
             attack_speed=weapon_data.get('attack_speed', 1),
@@ -336,7 +343,7 @@ def calculate_damage():
             critical_damage=weapon_data.get('critical_damage', 1),
             status_chance=weapon_data.get('status_chance', 0),
             status_duration=weapon_data.get('status_duration', 1),
-            elements=Elements(**(weapon_data.get('elements', {})))
+            elements=Elements(**weapon_elements_dict)
         )
 
         logger.info(f"Parsed weapon stats: damage={weapon.damage}, attack_speed={weapon.attack_speed}, "
@@ -356,10 +363,17 @@ def calculate_damage():
         processed_buffs = unflatten_buff_data(in_game_buffs_data)
         logger.info(f"In-game buffs (processed): {processed_buffs}")
 
-        # Translate mods and buffs
-        static_buff, in_game_buff = translator.translate_mods(mod_list, processed_buffs)
-        logger.info(f"Static buff - damage: {static_buff.damage}, multishot: {static_buff.multishot}, "
-                   f"crit_chance: {static_buff.critical_chance}, crit_damage: {static_buff.critical_damage}")
+        # Translate mods and buffs - now returns (InGameBuff, mods_order, igb_order)
+        in_game_buff, element_order_from_mods, element_order_from_igb = translator.translate_mods_and_stats(mod_list, processed_buffs)
+        logger.info(f"InGameBuff - damage: {in_game_buff.damage}, multishot: {in_game_buff.multishot}, "
+                   f"crit_chance: {in_game_buff.critical_chance}, crit_damage: {in_game_buff.critical_damage}")
+        logger.info(f"Element order from mods: {element_order_from_mods}")
+        logger.info(f"Element order from weapon: {element_order_from_weapon}")
+        logger.info(f"Element order from IGB: {element_order_from_igb}")
+
+        # Combine element orders: mods -> weapon -> in-game buffs
+        element_order = element_order_from_mods + element_order_from_weapon + element_order_from_igb
+        logger.info(f"Final element order: {element_order}")
 
         # Parse enemy
         enemy_data = data.get('enemy', {})
@@ -381,12 +395,13 @@ def calculate_damage():
 
         logger.info(f"Enemy faction: {enemy.faction.value}, type: {enemy.type.value}")
 
-        # Create calculator
+        # Create calculator with element order
         calculator = DamageCalculator(
             weapon_stat=weapon,
-            static_buff=static_buff,
+            static_buff=StaticBuff(),  # Empty static buff for now (will be removed in future refactor)
             in_game_buff=in_game_buff,
-            enemy_stat=enemy
+            enemy_stat=enemy,
+            element_order=element_order
         )
 
         # Calculate damage
@@ -417,6 +432,11 @@ def calculate_damage():
 
         logger.info("=== Calculation Complete ===")
 
+        # Get final element breakdown after combination
+        final_elements = weapon.elements + calculator.final_buff.elements
+        element_breakdown = final_elements.to_dict()
+        logger.info(f"Final element breakdown: {element_breakdown}")
+
         # Build response with ordered dictionaries for consistent display order
         damage = OrderedDict([
             ('direct_dps', direct_dps),
@@ -424,18 +444,19 @@ def calculate_damage():
         ] + [('dot_' + elem + '_dps', dps) for elem, dps in dots_dps.items()])
 
         stats = OrderedDict([
-            ('base_damage', base_damage),
+            ('base_damage_multiplier', base_damage),
             ('multishot', multishot),
             ('critical_multiplier', crit_multiplier),
             ('attack_speed', attack_speed),
             ('status_chance', status_chance),
-            ('elemental_total', elem_total)
+            ('elemental_damage_multiplier', elem_total)
         ])
 
         result = {
             'success': True,
             'damage': damage,
-            'stats': stats
+            'stats': stats,
+            'element_breakdown': element_breakdown
         }
 
         return jsonify(result)

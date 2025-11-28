@@ -64,11 +64,11 @@ class ModTranslator:
         with open(self.mod_data_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def translate_mods(
+    def translate_mods_and_stats(
         self, mod_names: list[str], in_game_stats: dict = None
-    ) -> tuple[StaticBuff, InGameBuff]:
+    ) -> tuple[InGameBuff, list[str], list[str]]:
         """
-        Translate a list of mod names and in-game stats into StaticBuff and InGameBuff.
+        Translate a list of mod names and in-game stats into InGameBuff and element orders.
 
         Args:
             mod_names: List of mod names to include
@@ -80,23 +80,26 @@ class ModTranslator:
                 - attack_speed: float (attack speed bonus)
                 - final_multiplier: float (final damage multiplier)
                 - elements: dict (additional elemental damage)
+                - element_order: list (order of elements for in-game buffs)
 
         Returns:
-            Tuple of (StaticBuff, InGameBuff)
+            Tuple of (InGameBuff, element_order_from_mods, element_order_from_igb)
         """
-        static_buff = StaticBuff()
         in_game_buff = InGameBuff()
 
         # Initialize with default values
-        static_buff.damage = 0
-        static_buff.attack_speed = 0
-        static_buff.multishot = 0
-        static_buff.critical_chance = 0
-        static_buff.critical_damage = 0
-        static_buff.status_chance = 0
-        static_buff.status_duration = 0
-        static_buff.elements = Elements()
-        static_buff.prejudice = {}
+        in_game_buff.damage = 0
+        in_game_buff.attack_speed = 0
+        in_game_buff.multishot = 0
+        in_game_buff.critical_chance = 0
+        in_game_buff.critical_damage = 0
+        in_game_buff.status_chance = 0
+        in_game_buff.status_duration = 0
+        in_game_buff.elements = Elements()
+        in_game_buff.prejudice = {}
+
+        # Track element order from mods
+        element_order_from_mods = []
 
         # Process each mod
         for mod_name in mod_names:
@@ -105,22 +108,30 @@ class ModTranslator:
                 continue
 
             mod = self.mod_data[mod_name]
-            self._apply_mod_to_buff(mod_name, mod, static_buff, in_game_buff)
+            mod_element_order = self._apply_mod_to_buff(mod_name, mod, in_game_buff)
+            element_order_from_mods.extend(mod_element_order)
 
         # Process in-game stats
+        element_order_from_igb = []
         if in_game_stats:
-            self._apply_in_game_stats(in_game_stats, in_game_buff)
+            element_order_from_igb = self._apply_in_game_stats(in_game_stats, in_game_buff)
 
-        return static_buff, in_game_buff
+        return in_game_buff, element_order_from_mods, element_order_from_igb
 
-    def _apply_mod_to_buff(self, mod_name: str, mod: dict, static_buff: StaticBuff, in_game_buff: InGameBuff) -> None:
+    def _apply_mod_to_buff(self, mod_name: str, mod: dict, in_game_buff: InGameBuff) -> list[str]:
         """
-        Apply a single mod's effects to the StaticBuff.
+        Apply a single mod's effects to the InGameBuff.
 
         Args:
+            mod_name: Name of the mod
             mod: Mod data dictionary
-            static_buff: StaticBuff to modify
+            in_game_buff: InGameBuff to modify
+
+        Returns:
+            List of element names added by this mod (for element order tracking)
         """
+        mod_element_order = []
+
         for stat_key, value in mod.items():
             # Skip non-stat fields
             if stat_key in ["max_level", "special_notes", "on_headshot", "on_kill", "on_critical_hit"]:
@@ -133,42 +144,53 @@ class ModTranslator:
             # Map to general stat
             if stat_key in STAT_MAPPING:
                 field_name = STAT_MAPPING[stat_key]
-                current_value = getattr(static_buff, field_name)
-                setattr(static_buff, field_name, current_value + value)
+                current_value = getattr(in_game_buff, field_name)
+                setattr(in_game_buff, field_name, current_value + value)
 
             # Map to element
             elif stat_key in ELEMENT_MAPPING:
                 element_name = ELEMENT_MAPPING[stat_key]
-                current_value = getattr(static_buff.elements, element_name)
-                setattr(static_buff.elements, element_name, current_value + value)
+                current_value = getattr(in_game_buff.elements, element_name)
+                setattr(in_game_buff.elements, element_name, current_value + value)
+
+                # Track all elements for combination order (skip if value is 0)
+                if value > 0:
+                    mod_element_order.append(element_name)
 
             # Map to faction (prejudice)
             elif stat_key in FACTION_MAPPING:
                 faction_name = FACTION_MAPPING[stat_key]
-                if faction_name in static_buff.prejudice:
-                    static_buff.prejudice[faction_name] += value
+                if faction_name in in_game_buff.prejudice:
+                    in_game_buff.prejudice[faction_name] += value
                 else:
-                    static_buff.prejudice[faction_name] = value
+                    in_game_buff.prejudice[faction_name] = value
 
             # Check if it's an attribute in StaticBuff that we haven't explicitly mapped
             else:
-                if hasattr(static_buff, stat_key):
-                    current_value = getattr(static_buff, stat_key)
+                if hasattr(in_game_buff, stat_key):
+                    current_value = getattr(in_game_buff, stat_key)
                     if isinstance(current_value, (int, float)):
-                        setattr(static_buff, stat_key, current_value + value)
-            
+                        setattr(in_game_buff, stat_key, current_value + value)
+
         # callbacks
         if mod_name in CALLBACK_MAPPING:
             in_game_buff.callbacks.append(CALLBACK_MAPPING[mod_name])
 
-    def _apply_in_game_stats(self, in_game_stats: dict, in_game_buff: InGameBuff) -> None:
+        return mod_element_order
+
+    def _apply_in_game_stats(self, in_game_stats: dict, in_game_buff: InGameBuff) -> list[str]:
         """
         Apply in-game stats to InGameBuff.
 
         Args:
             in_game_stats: Dictionary of in-game stats
             in_game_buff: InGameBuff to modify
+
+        Returns:
+            List of element names from in-game buffs (for element order tracking)
         """
+        igb_element_order = []
+
         # Direct mappings for InGameBuff fields
         for key, value in in_game_stats.items():
             if key == "elements":
@@ -176,10 +198,15 @@ class ModTranslator:
                 for elem_key, elem_value in value.items():
                     if hasattr(in_game_buff.elements, elem_key):
                         setattr(in_game_buff.elements, elem_key, elem_value)
+                        # Track all elements for combination order (skip if value is 0)
+                        if elem_value > 0:
+                            igb_element_order.append(elem_key)
             elif hasattr(in_game_buff, key):
                 setattr(in_game_buff, key, value)
             else:
                 print(f"Warning: In-game stat '{key}' not found in InGameBuff")
+
+        return igb_element_order
 
     def get_available_mods(self) -> list[str]:
         """Get list of all available mod names."""
@@ -222,19 +249,17 @@ if __name__ == "__main__":
         "num_debuffs": 0,
     }
 
-    static_buff, in_game_buff = translator.translate_mods(mods, in_game_stats)
+    in_game_buff = translator.translate_mods_and_stats(mods, in_game_stats)
 
-    print("StaticBuff:")
-    print(f"  damage: {static_buff.damage}")
-    print(f"  attack_speed: {static_buff.attack_speed}")
-    print(f"  multishot: {static_buff.multishot}")
-    print(f"  critical_chance: {static_buff.critical_chance}")
-    print(f"  critical_damage: {static_buff.critical_damage}")
-    print(f"  status_chance: {static_buff.status_chance}")
-    print(f"  elements: {static_buff.elements.to_dict()}")
-    print(f"  prejudice: {static_buff.prejudice}")
-
-    print("\nInGameBuff:")
+    print("InGameBuff:")
+    print(f"  damage: {in_game_buff.damage}")
+    print(f"  attack_speed: {in_game_buff.attack_speed}")
+    print(f"  multishot: {in_game_buff.multishot}")
+    print(f"  critical_chance: {in_game_buff.critical_chance}")
+    print(f"  critical_damage: {in_game_buff.critical_damage}")
+    print(f"  status_chance: {in_game_buff.status_chance}")
+    print(f"  elements: {in_game_buff.elements.to_dict()}")
+    print(f"  prejudice: {in_game_buff.prejudice}")
     print(f"  galvanized_shot: {in_game_buff.galvanized_shot}")
     print(f"  galvanized_aptitude: {in_game_buff.galvanized_aptitude}")
     print(f"  final_additive_cd: {in_game_buff.final_additive_cd}")

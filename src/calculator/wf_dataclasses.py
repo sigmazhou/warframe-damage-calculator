@@ -4,7 +4,15 @@ from enum import StrEnum, auto
 from typing import Any, TypeVar, Generic
 import copy
 
-Self = TypeVar('Self', bound='_SupportsMath')
+Self = TypeVar("Self", bound="_SupportsMath")
+
+
+ELEMENT_COMBINATION_MAP = {
+    "cold": {"electricity": "magnetic", "heat": "blast", "toxin": "viral"},
+    "electricity": {"cold": "magnetic", "heat": "radiation", "toxin": "corrosive"},
+    "heat": {"cold": "blast", "electricity": "radiation", "toxin": "gas"},
+    "toxin": {"cold": "viral", "electricity": "corrosive", "heat": "gas"},
+}
 
 
 @dataclass
@@ -152,7 +160,7 @@ class _SupportsMath:
 
         # Try direct addition (works for numbers, strings, lists, _SupportsMath objects, etc.)
         try:
-            if inplace and hasattr(self_value, '__iadd__'):
+            if inplace and hasattr(self_value, "__iadd__"):
                 # Use in-place addition if available
                 self_value += other_value
                 return self_value
@@ -178,6 +186,11 @@ class Elements(_SupportsMath):
     electricity: float = 0.0
     heat: float = 0.0
     toxin: float = 0.0
+
+    cold_standalone: float = 0.0
+    electricity_standalone: float = 0.0
+    heat_standalone: float = 0.0
+    toxin_standalone: float = 0.0
 
     # Combined elemental damage types
     blast: float = 0.0
@@ -211,6 +224,38 @@ class Elements(_SupportsMath):
         """Set all element values to the same value."""
         for f in fields(self):
             setattr(self, f.name, value)
+
+    def combine_elements(
+        self, element_order: list[str], combine_standalone: bool = True
+    ) -> None:
+        visited = set()
+        element_order_clean = []
+        for e in element_order:
+            if e in ELEMENT_COMBINATION_MAP and e not in visited:
+                visited.add(e)
+                element_order_clean.append(e)
+        while len(element_order_clean) > 1:
+            e1 = element_order_clean.pop(0)
+            e2 = element_order_clean.pop(0)
+            e_combined = ELEMENT_COMBINATION_MAP[e1][e2]
+            setattr(
+                self,
+                e_combined,
+                getattr(self, e1) + getattr(self, e2) + getattr(self, e_combined),
+            )
+            setattr(self, e1, 0)
+            setattr(self, e2, 0)
+        if combine_standalone:
+            self.combine_standalone_elements()
+
+    def combine_standalone_elements(self) -> None:
+        for e in fields(self):
+            if e.name.endswith("_standalone"):
+                e_combined = e.name.replace("_standalone", "")
+                setattr(
+                    self, e_combined, getattr(self, e.name) + getattr(self, e_combined)
+                )
+                setattr(self, e.name, 0)
 
 
 @dataclass
