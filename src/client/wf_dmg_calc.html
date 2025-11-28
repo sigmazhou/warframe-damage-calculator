@@ -1047,32 +1047,7 @@
                 html += '</div>';
 
                 // Add element bar
-                // TODO remove this and use stats
-                html += '<div style="margin-top: 10px;"><div class="result-label" style="margin-bottom: 4px;">Element Distribution</div><div class="element-bar">';
-
-                if (data.buffs_applied && data.buffs_applied.static && data.buffs_applied.static.elements) {
-                    const elements = data.buffs_applied.static.elements;
-                    const totalElem = Object.values(elements).reduce((a, b) => a + b, 0);
-
-                    if (totalElem > 0) {
-                        for (const [elemName, elemValue] of Object.entries(elements)) {
-                            if (elemValue > 0) {
-                                const percentage = (elemValue / totalElem) * 100;
-                                html += `
-                                    <div class="element-segment" style="width: ${percentage}%; background-color: ${getElementColor(elemName)};">
-                                        ${elemName}: ${percentage.toFixed(0)}%
-                                    </div>
-                                `;
-                            }
-                        }
-                    } else {
-                        html += '<div style="padding: 4px; text-align: center;">No elemental damage</div>';
-                    }
-                } else {
-                    html += '<div style="padding: 4px; text-align: center;">No elemental data</div>';
-                }
-
-                html += '</div></div>';
+                // TODO use stats
 
                 return html;
             }

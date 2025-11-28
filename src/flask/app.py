@@ -437,28 +437,7 @@ def calculate_damage():
         result = {
             'success': True,
             'damage': damage,
-            'stats': stats,
-            'buffs_applied': {
-                'static': {
-                    'damage': static_buff.damage,
-                    'critical_chance': static_buff.critical_chance,
-                    'critical_damage': static_buff.critical_damage,
-                    'multishot': static_buff.multishot,
-                    'attack_speed': static_buff.attack_speed,
-                    'status_chance': static_buff.status_chance,
-                    'elements': static_buff.elements.to_dict(),
-                    'prejudice': static_buff.prejudice
-                },
-                'in_game': {
-                    'galvanized_shot': in_game_buff.galvanized_shot,
-                    'galvanized_aptitude': in_game_buff.galvanized_aptitude,
-                    'final_additive_cd': in_game_buff.final_additive_cd,
-                    'attack_speed': in_game_buff.attack_speed,
-                    'num_debuffs': in_game_buff.num_debuffs,
-                    'final_multiplier': in_game_buff.final_multiplier,
-                    'elements': in_game_buff.elements.to_dict()
-                }
-            }
+            'stats': stats
         }
 
         return jsonify(result)
