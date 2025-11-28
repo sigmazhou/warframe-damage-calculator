@@ -45,6 +45,8 @@ class DamageCalculator:
         self.element_order = element_order or []
         self.final_buff = in_game_buff + static_buff
 
+        self.final_buff.elements += weapon_stat.elements
+
         # apply IGB callbacks
         for callback in self.final_buff.callbacks:
             if callback.type == CallbackType.IN_GAME_BUFF:
@@ -63,14 +65,12 @@ class DamageCalculator:
         Returns:
             Total elemental damage multiplier
         """
-        # Combine all element sources using the Elements addition operator
-        combined = self.weapon_stat.elements + self.final_buff.elements
-
+        # Use final_buff.elements which already includes weapon elements
         if self.enemy_stat.type == EnemyType.TRIDOLON:
             # Apply Tridolon type bonuses (radiation and cold get 1.5x)
             total = 0.0
-            for f in fields(combined):
-                value = getattr(combined, f.name)
+            for f in fields(self.final_buff.elements):
+                value = getattr(self.final_buff.elements, f.name)
                 if f.name in ("radiation", "cold"):
                     total += value * 1.5
                 else:
@@ -78,7 +78,7 @@ class DamageCalculator:
             return total
         else:
             # No special type bonuses
-            return combined.total()
+            return self.final_buff.elements.total()
 
     def calc_single_hit(self) -> float:
         """

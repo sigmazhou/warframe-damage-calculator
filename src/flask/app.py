@@ -433,8 +433,8 @@ def calculate_damage():
         logger.info("=== Calculation Complete ===")
 
         # Get final element breakdown after combination
-        final_elements = weapon.elements + calculator.final_buff.elements
-        element_breakdown = final_elements.to_dict()
+        # final_buff.elements already includes weapon elements
+        element_breakdown = calculator.final_buff.elements.to_dict()
         logger.info(f"Final element breakdown: {element_breakdown}")
 
         # Build response with ordered dictionaries for consistent display order
