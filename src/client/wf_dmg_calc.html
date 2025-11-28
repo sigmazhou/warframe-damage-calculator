@@ -253,7 +253,9 @@
             border-color: var(--accent-color);
         }
 
-        .remove-btn {
+        .remove-weapon-element-btn,
+        .remove-mod-btn,
+        .remove-buff-btn {
             background: #c44;
             border: none;
             color: white;
@@ -531,7 +533,7 @@
 
             // Initialize event listeners for the first build
             const firstBuild = document.querySelector('.build[data-build-id="1"]');
-            initializeBuildEventListeners(firstBuild);
+            setupBuildEventListeners(firstBuild);
 
             // Attach remove button listener for first build
             const firstRemoveBtn = firstBuild.querySelector('.remove-build-btn');
@@ -544,7 +546,7 @@
             // Update remove button visibility initially
             updateRemoveButtons();
 
-            function initializeBuildEventListeners(build) {
+            function setupBuildEventListeners(build) {
                 const buildId = build.getAttribute('data-build-id');
                 const modSearch = build.querySelector('.mod-search-input');
                 const searchResults = build.querySelector('.mod-search-results');
@@ -552,6 +554,7 @@
                 const buffSearchResults = build.querySelector('.buff-search-results');
                 const addElementBtn = build.querySelector('.add-element-btn');
 
+                // === Setup search and add button listeners ===
                 if (modSearch && searchResults) {
                     modSearch.addEventListener('input', function() {
                         const query = this.value.trim();
@@ -627,6 +630,57 @@
                         addWeaponElementForBuild(build);
                     });
                 }
+
+                // === Reattach listeners for cloned items (weapon elements, mods, buffs) ===
+                // This handles both new builds and cloned builds with existing items
+
+                // Reattach weapon element remove buttons
+                const weaponElements = build.querySelector('.weapon-elements-container');
+                build.querySelectorAll('.element-item').forEach(item => {
+                    const removeBtn = item.querySelector('.remove-weapon-element-btn');
+                    if (removeBtn) {
+                        // Remove old listener by replacing the button
+                        const newBtn = removeBtn.cloneNode(true);
+                        removeBtn.parentNode.replaceChild(newBtn, removeBtn);
+                        newBtn.addEventListener('click', function() {
+                            weaponElements.removeChild(item);
+                        });
+                    }
+
+                    // Reattach value input listener
+                    const valueInput = item.querySelector('.element-value-input');
+                    if (valueInput) {
+                        valueInput.addEventListener('input', function() {
+                            item.dataset.value = this.value;
+                        });
+                    }
+                });
+
+                // Reattach mod remove buttons
+                const selectedMods = build.querySelector('.selected-mods-container');
+                build.querySelectorAll('.mod-item:not(.buff-item)').forEach(item => {
+                    const removeBtn = item.querySelector('.remove-mod-btn');
+                    if (removeBtn) {
+                        const newBtn = removeBtn.cloneNode(true);
+                        removeBtn.parentNode.replaceChild(newBtn, removeBtn);
+                        newBtn.addEventListener('click', function() {
+                            selectedMods.removeChild(item);
+                        });
+                    }
+                });
+
+                // Reattach buff remove buttons
+                const selectedBuffs = build.querySelector('.selected-buffs-container');
+                build.querySelectorAll('.buff-item').forEach(item => {
+                    const removeBtn = item.querySelector('.remove-buff-btn');
+                    if (removeBtn) {
+                        const newBtn = removeBtn.cloneNode(true);
+                        removeBtn.parentNode.replaceChild(newBtn, removeBtn);
+                        newBtn.addEventListener('click', function() {
+                            selectedBuffs.removeChild(item);
+                        });
+                    }
+                });
             }
 
             function loadEnemyTypes() {
@@ -742,7 +796,7 @@
                     <span class="element-name">${elementName}</span>
                     <input type="number" class="element-value-input" value="${value}" step="0.01">
                     <span style="font-size: 10px; color: var(--text-color);">%</span>
-                    <button class="remove-btn" type="button">X</button>
+                    <button class="remove-weapon-element-btn" type="button">X</button>
                 `;
 
                 // Update data attribute when value changes
@@ -751,7 +805,7 @@
                     elementItem.dataset.value = this.value;
                 });
 
-                elementItem.querySelector('.remove-btn').addEventListener('click', function() {
+                elementItem.querySelector('.remove-weapon-element-btn').addEventListener('click', function() {
                     weaponElements.removeChild(elementItem);
                 });
                 weaponElements.appendChild(elementItem);
@@ -773,9 +827,9 @@
                 modItem.className = 'mod-item';
                 modItem.innerHTML = `
                     <span class="mod-name">${modName}</span>
-                    <button class="remove-btn" data-mod-id="${modId}">X</button>
+                    <button class="remove-mod-btn" data-mod-id="${modId}">X</button>
                 `;
-                modItem.querySelector('.remove-btn').addEventListener('click', function() {
+                modItem.querySelector('.remove-mod-btn').addEventListener('click', function() {
                     selectedMods.removeChild(modItem);
                 });
                 selectedMods.appendChild(modItem);
@@ -808,10 +862,10 @@
                 buffItem.innerHTML = `
                     <span class="mod-name" style="flex: 1;">${buffName}</span>
                     <input type="number" class="buff-value-input" value="${defaultValue}" step="${step}" style="width: 60px; padding: 2px 4px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-color); font-size: 11px;">
-                    <button class="remove-btn">X</button>
+                    <button class="remove-buff-btn">X</button>
                 `;
 
-                buffItem.querySelector('.remove-btn').addEventListener('click', function() {
+                buffItem.querySelector('.remove-buff-btn').addEventListener('click', function() {
                     selectedBuffs.removeChild(buffItem);
                 });
 
@@ -837,8 +891,8 @@
                     removeBuild(newBuild);
                 });
 
-                // Initialize event listeners for the new build
-                initializeBuildEventListeners(newBuild);
+                // Setup all event listeners for the new build (includes cloned items)
+                setupBuildEventListeners(newBuild);
 
                 container.appendChild(newBuild);
 
@@ -909,7 +963,7 @@
                     // Collect mods
                     const mods = [];
                     build.querySelectorAll('.mod-item:not(.buff-item)').forEach(item => {
-                        const modId = item.querySelector('.remove-btn').getAttribute('data-mod-id');
+                        const modId = item.querySelector('.remove-mod-btn').getAttribute('data-mod-id');
                         if (modId) {
                             mods.push(modId);
                         }
