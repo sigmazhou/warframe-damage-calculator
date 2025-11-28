@@ -3,7 +3,7 @@ from flask_cors import CORS
 from dataclasses import fields, MISSING
 import logging
 from collections import OrderedDict
-from src.calculator.mod_translator import ModTranslator
+from src.calculator.mod_parser import ModParser
 from src.calculator.damage_calculator import DamageCalculator
 from src.calculator.wf_dataclasses import (
     WeaponStat,
@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__, static_folder='../client', static_url_path='')
 CORS(app)  # Enable CORS for all routes
 
-# Initialize translator
-translator = ModTranslator()
+# Initialize parser
+parser = ModParser()
 
 
 # Helper functions for flattening/unflattening buff fields
@@ -120,11 +120,11 @@ def get_available_mods():
         JSON array of mod objects with name and details
     """
     try:
-        mod_names = translator.get_available_mods()
+        mod_names = parser.get_available_mods()
         mods_list = []
 
         for mod_name in mod_names:
-            mod_info = translator.get_mod_info(mod_name)
+            mod_info = parser.get_mod_info(mod_name)
             mods_list.append({
                 'id': mod_name,
                 'name': mod_name,
@@ -165,12 +165,12 @@ def search_mods():
                 'mods': []
             })
 
-        mod_names = translator.get_available_mods()
+        mod_names = parser.get_available_mods()
         matching_mods = []
 
         for mod_name in mod_names:
             if query in mod_name.lower():
-                mod_info = translator.get_mod_info(mod_name)
+                mod_info = parser.get_mod_info(mod_name)
                 matching_mods.append({
                     'id': mod_name,
                     'name': mod_name,
@@ -363,8 +363,8 @@ def calculate_damage():
         processed_buffs = unflatten_buff_data(in_game_buffs_data)
         logger.info(f"In-game buffs (processed): {processed_buffs}")
 
-        # Translate mods and buffs - now returns (InGameBuff, mods_order, igb_order)
-        in_game_buff, element_order_from_mods, element_order_from_igb = translator.translate_mods_and_stats(mod_list, processed_buffs)
+        # Parse mods and buffs - now returns (InGameBuff, mods_order, igb_order)
+        in_game_buff, element_order_from_mods, element_order_from_igb = parser.parse_mods_and_stats(mod_list, processed_buffs)
         logger.info(f"InGameBuff - damage: {in_game_buff.damage}, multishot: {in_game_buff.multishot}, "
                    f"crit_chance: {in_game_buff.critical_chance}, crit_damage: {in_game_buff.critical_damage}")
         logger.info(f"Element order from mods: {element_order_from_mods}")

@@ -46,12 +46,12 @@ FACTION_MAPPING = {
 }
 
 
-class ModTranslator:
-    """Translates mod names and in-game stats to StaticBuff and InGameBuff instances."""
+class ModParser:
+    """Parses mod names and in-game stats to StaticBuff and InGameBuff instances."""
 
     def __init__(self, mod_data_path: str = "src/data/mod_data.txt"):
         """
-        Initialize the translator with mod data.
+        Initialize the parser with mod data.
 
         Args:
             mod_data_path: Path to the JSON file containing mod data
@@ -64,11 +64,11 @@ class ModTranslator:
         with open(self.mod_data_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def translate_mods_and_stats(
+    def parse_mods_and_stats(
         self, mod_names: list[str], in_game_stats: dict = None
     ) -> tuple[InGameBuff, list[str], list[str]]:
         """
-        Translate a list of mod names and in-game stats into InGameBuff and element orders.
+        Parse a list of mod names and in-game stats into InGameBuff and element orders.
 
         Args:
             mod_names: List of mod names to include
@@ -226,9 +226,9 @@ class ModTranslator:
 
 
 if __name__ == "__main__":
-    """Test the translator with the Dual Toxocyst example from wf_dmg_calc.py"""
+    """Test the parser with the Dual Toxocyst example from wf_dmg_calc.py"""
 
-    translator = ModTranslator()
+    parser = ModParser()
 
     # Define mods for the build (matching the example in wf_dmg_calc.py)
     mods = [
@@ -249,7 +249,7 @@ if __name__ == "__main__":
         "num_debuffs": 0,
     }
 
-    in_game_buff = translator.translate_mods_and_stats(mods, in_game_stats)
+    in_game_buff = parser.parse_mods_and_stats(mods, in_game_stats)
 
     print("InGameBuff:")
     print(f"  damage: {in_game_buff.damage}")
