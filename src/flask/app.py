@@ -307,6 +307,11 @@ def calculate_damage():
                 "num_debuffs": int,
                 "final_multiplier": float,
                 "elements": {...}
+            },
+            "element_order": ["heat", "toxin"],
+            "simulation": {
+                "duration": 10.0,
+                "num_simulations": 10
             }
         }
 
@@ -404,6 +409,8 @@ def calculate_damage():
             element_order=element_order
         )
 
+        simulation_config = data.get('simulation', {})
+
         # Calculate damage
         logger.info("--- Starting damage calculations ---")
 
@@ -432,6 +439,15 @@ def calculate_damage():
 
         logger.info("=== Calculation Complete ===")
 
+        duration = simulation_config.get('duration', 10.0)
+        num_simulations = simulation_config.get('num_simulations', 10)
+
+        simulation_result = calculator.simulate_combat_multiple(
+            duration=duration,
+            num_simulations=num_simulations,
+            verbose=False
+        )
+
         # Get final element breakdown after combination
         # combined_elements contains the combined elements with weapon
         element_breakdown = calculator.combined_elements.to_dict()
@@ -456,7 +472,8 @@ def calculate_damage():
             'success': True,
             'damage': damage,
             'stats': stats,
-            'element_breakdown': element_breakdown
+            'element_breakdown': element_breakdown,
+            'simulation_result': simulation_result
         }
 
         return jsonify(result)
