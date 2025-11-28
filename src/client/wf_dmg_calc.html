@@ -236,12 +236,6 @@
             min-width: 0;
         }
 
-        .element-value {
-            font-weight: 600;
-            color: var(--accent-color);
-            font-size: 10px;
-        }
-
         .element-value-input {
             width: 50px;
             padding: 2px 4px;
@@ -1053,6 +1047,7 @@
                 html += '</div>';
 
                 // Add element bar
+                // TODO remove this and use stats
                 html += '<div style="margin-top: 10px;"><div class="result-label" style="margin-bottom: 4px;">Element Distribution</div><div class="element-bar">';
 
                 if (data.buffs_applied && data.buffs_applied.static && data.buffs_applied.static.elements) {
@@ -1080,74 +1075,6 @@
                 html += '</div></div>';
 
                 return html;
-            }
-
-            function displayResults(data) {
-                const resultsGrid = document.getElementById('results-grid');
-                resultsGrid.innerHTML = '';
-
-                // Helper function to create a result item
-                function createResultItem(label, value) {
-                    const item = document.createElement('div');
-                    item.className = 'result-item';
-                    item.innerHTML = `
-                        <div class="result-label">${label}</div>
-                        <div class="result-value">${value}</div>
-                    `;
-                    return item;
-                }
-
-                // Helper function to format numbers
-                function formatValue(value) {
-                    if (typeof value === 'number') {
-                        return value.toFixed(2);
-                    }
-                    return value;
-                }
-
-                // Display all damage values from backend
-                if (data.damage) {
-                    for (const [key, value] of Object.entries(data.damage)) {
-                        resultsGrid.appendChild(createResultItem(key, formatValue(value)));
-                    }
-                }
-
-                // Display all stats values from backend
-                if (data.stats) {
-                    for (const [key, value] of Object.entries(data.stats)) {
-                        // Skip elemental_total as it's complex object, can be handled separately if needed
-                        if (typeof value !== 'object') {
-                            resultsGrid.appendChild(createResultItem(key, formatValue(value)));
-                        }
-                    }
-                }
-
-                // Display element bar
-                const elementBar = document.getElementById('element-bar');
-                elementBar.innerHTML = '';
-
-                if (data.buffs_applied && data.buffs_applied.static && data.buffs_applied.static.elements) {
-                    const elements = data.buffs_applied.static.elements;
-                    const totalElem = Object.values(elements).reduce((a, b) => a + b, 0);
-
-                    if (totalElem > 0) {
-                        for (const [elemName, elemValue] of Object.entries(elements)) {
-                            if (elemValue > 0) {
-                                const percentage = (elemValue / totalElem) * 100;
-                                const segment = document.createElement('div');
-                                segment.className = 'element-segment';
-                                segment.style.width = `${percentage}%`;
-                                segment.style.backgroundColor = getElementColor(elemName);
-                                segment.textContent = `${elemName}: ${percentage.toFixed(0)}%`;
-                                elementBar.appendChild(segment);
-                            }
-                        }
-                    } else {
-                        elementBar.innerHTML = '<div style="padding: 4px; text-align: center;">No elemental damage</div>';
-                    }
-                } else {
-                    elementBar.innerHTML = '<div style="padding: 4px; text-align: center;">No elemental data</div>';
-                }
             }
 
             function getElementColor(elemName) {
