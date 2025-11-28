@@ -243,6 +243,7 @@ class InGameBuff(_GeneralStat):
 
     galvanized_shot: int = 0
     galvanized_diffusion: int = 0
+    galvanized_aptitude: int = 0
     final_additive_cd: float = 0  # Includes pet crit multiplier bonus
     attack_speed: float = 0.0  # Includes pet attack speed bonus
     num_debuffs: int = 0  # Number of debuffs on enemy
