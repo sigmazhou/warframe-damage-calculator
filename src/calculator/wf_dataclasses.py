@@ -4,45 +4,12 @@ from enum import StrEnum, auto
 from typing import Any, TypeVar, Generic
 import copy
 
-Self = TypeVar('Self', bound='_SupportsAdd')
+Self = TypeVar('Self', bound='_SupportsMath')
 
 
 @dataclass
-class _SupportsAdd:
-    """Base class for dataclasses that support addition operator."""
-
-    def _combine_fields(self, other, inplace: bool = False):
-        """
-        Helper to combine fields from self and other.
-
-        Args:
-            other: Another _SupportsAdd instance
-            inplace: If True, modify self in-place; if False, return dict of combined values
-
-        Returns:
-            Dict of combined values if inplace=False, None if inplace=True
-        """
-        combined_values = {} if not inplace else None
-
-        for f in fields(self):
-            self_value = getattr(self, f.name)
-
-            if hasattr(other, f.name):
-                other_value = getattr(other, f.name)
-                new_value = self._combine_field(f.name, self_value, other_value, inplace)
-
-                if inplace:
-                    setattr(self, f.name, new_value)
-                else:
-                    combined_values[f.name] = new_value
-            else:
-                # Field doesn't exist in other
-                if not inplace:
-                    combined_values[f.name] = copy.copy(self_value)
-                # For inplace, keep self's value unchanged (no action needed)
-
-        return combined_values
-
+class _SupportsMath:
+    """Base class for dataclasses that support math operators."""
     def __add__(self: Self, other: Self) -> Self:
         """
         Add two dataclass instances together, combining all field values.
@@ -57,10 +24,10 @@ class _SupportsAdd:
         Returns:
             New instance of the same type as self with combined values
         """
-        if not isinstance(other, _SupportsAdd):
+        if not isinstance(other, _SupportsMath):
             return NotImplemented
 
-        combined_values = self._combine_fields(other, inplace=False)
+        combined_values = self._add_fields(other, inplace=False)
         return type(self)(**combined_values)
 
     def __iadd__(self: Self, other: Self) -> Self:
@@ -76,13 +43,78 @@ class _SupportsAdd:
         Returns:
             Self with updated values
         """
-        if not isinstance(other, _SupportsAdd):
+        if not isinstance(other, _SupportsMath):
             return NotImplemented
 
-        self._combine_fields(other, inplace=True)
+        self._add_fields(other, inplace=True)
         return self
 
-    def _combine_field(self, name: str, self_value, other_value, inplace: bool = False):
+    def __mul__(self: Self, other: int | float) -> Self:
+        """
+        Multiply a dataclass instance by a scalar, multiplying all field values.
+
+        Args:
+            other: Scalar multiplier
+
+        Returns:
+            New instance of the same type as self with multiplied values
+        """
+        if not isinstance(other, (int, float)):
+            return NotImplemented
+
+        new_values = {f.name: getattr(self, f.name) * other for f in fields(self)}
+        return type(self)(**new_values)
+
+    def __imul__(self: Self, other: int | float) -> Self:
+        """
+        Multiply a dataclass instance by a scalar, multiplying all field values.
+
+        Args:
+            other: Scalar multiplier
+
+        Returns:
+            New instance of the same type as self with multiplied values
+        """
+        if not isinstance(other, (int, float)):
+            return NotImplemented
+
+        for f in fields(self):
+            setattr(self, f.name, getattr(self, f.name) * other)
+        return self
+
+    def _add_fields(self, other, inplace: bool = False):
+        """
+        Helper to combine fields from self and other.
+
+        Args:
+            other: Another _SupportsMath instance
+            inplace: If True, modify self in-place; if False, return dict of combined values
+
+        Returns:
+            Dict of combined values if inplace=False, None if inplace=True
+        """
+        combined_values = {} if not inplace else None
+
+        for f in fields(self):
+            self_value = getattr(self, f.name)
+
+            if hasattr(other, f.name):
+                other_value = getattr(other, f.name)
+                new_value = self._add_field(f.name, self_value, other_value, inplace)
+
+                if inplace:
+                    setattr(self, f.name, new_value)
+                else:
+                    combined_values[f.name] = new_value
+            else:
+                # Field doesn't exist in other
+                if not inplace:
+                    combined_values[f.name] = copy.copy(self_value)
+                # For inplace, keep self's value unchanged (no action needed)
+
+        return combined_values
+
+    def _add_field(self, name: str, self_value, other_value, inplace: bool = False):
         """
         Combine a field value from self and other.
 
@@ -118,7 +150,7 @@ class _SupportsAdd:
                         combined_dict[key] = value  # Add new key
                 return combined_dict
 
-        # Try direct addition (works for numbers, strings, lists, _SupportsAdd objects, etc.)
+        # Try direct addition (works for numbers, strings, lists, _SupportsMath objects, etc.)
         try:
             if inplace and hasattr(self_value, '__iadd__'):
                 # Use in-place addition if available
@@ -133,7 +165,7 @@ class _SupportsAdd:
 
 
 @dataclass
-class Elements(_SupportsAdd):
+class Elements(_SupportsMath):
     """Represents elemental and physical damage values for weapons."""
 
     # Physical damage types
@@ -182,7 +214,7 @@ class Elements(_SupportsAdd):
 
 
 @dataclass
-class _GeneralStat(_SupportsAdd):
+class _GeneralStat(_SupportsMath):
     damage: float = 0
     attack_speed: float = 0
     multishot: float = 0
@@ -204,8 +236,15 @@ class WeaponStat(_GeneralStat):
 
     def __post_init__(self):
         # Set default elements to puncture=1 if not provided
-        if self.elements.total() == 0:
-            self.elements = Elements(puncture=1)
+        self._normalize_elements()
+
+    def _normalize_elements(self) -> None:
+        """Normalize elements to have total 1."""
+        total = self.elements.total()
+        if total == 0:
+            self.elements = Elements(impact=1)
+        elif total != 1:
+            self.elements *= 1 / total
 
 
 @dataclass
@@ -218,6 +257,8 @@ class EnemyFaction(StrEnum):
     NONE = auto()
     GRINEER = auto()
     CORPUS = auto()
+    INFESTED = auto()
+    SENTIENT = auto()
 
 
 class EnemyType(StrEnum):
@@ -250,4 +291,4 @@ class InGameBuff(_GeneralStat):
     elements: Elements = field(default_factory=Elements)
     final_multiplier: float = 1.0
     # special mod effects such as galvanized and blood rush
-    callbacks: list[Callable[["InGameBuff"], None]] = field(default_factory=list)
+    callbacks: list[Callable[[Any], None]] = field(default_factory=list)

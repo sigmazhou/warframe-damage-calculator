@@ -328,18 +328,16 @@ def calculate_damage():
 
         # Parse weapon stats
         weapon_data = data.get('weapon', {})
-        weapon = WeaponStat()
-        weapon.damage = weapon_data.get('damage', 1)
-        weapon.attack_speed = weapon_data.get('attack_speed', 1)
-        weapon.multishot = weapon_data.get('multishot', 1)
-        weapon.critical_chance = weapon_data.get('critical_chance', 0)
-        weapon.critical_damage = weapon_data.get('critical_damage', 1)
-        weapon.status_chance = weapon_data.get('status_chance', 0)
-        weapon.status_duration = weapon_data.get('status_duration', 1)
-
-        # Parse weapon elements
-        weapon_elements = weapon_data.get('elements', {})
-        weapon.elements = Elements(**weapon_elements) if weapon_elements else Elements()
+        weapon = WeaponStat(
+            damage=weapon_data.get('damage', 1),
+            attack_speed=weapon_data.get('attack_speed', 1),
+            multishot=weapon_data.get('multishot', 1),
+            critical_chance=weapon_data.get('critical_chance', 0),
+            critical_damage=weapon_data.get('critical_damage', 1),
+            status_chance=weapon_data.get('status_chance', 0),
+            status_duration=weapon_data.get('status_duration', 1),
+            elements=Elements(**(weapon_data.get('elements', {})))
+        )
 
         logger.info(f"Parsed weapon stats: damage={weapon.damage}, attack_speed={weapon.attack_speed}, "
                    f"multishot={weapon.multishot}, crit_chance={weapon.critical_chance}, "
