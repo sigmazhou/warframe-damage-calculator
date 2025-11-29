@@ -174,6 +174,25 @@ class _SupportsMath:
             # Addition not supported, use self's value
             return copy.copy(self_value)
 
+# TODO: kill all hard coded strings
+class Element(StrEnum):
+    IMPACT = auto()
+    PUNCTURE = auto()
+    SLASH = auto()
+    COLD = auto()
+    ELECTRICITY = auto()
+    HEAT = auto()
+    TOXIN = auto()
+    CORROSIVE = auto()
+    RADIATION = auto()
+    VIRAL = auto()
+    GAS = auto()
+    MAGNETIC = auto()
+    BLAST = auto()
+    VOID = auto()
+    TAU = auto()
+    TRUE_DMG = auto()
+
 
 @dataclass
 class Elements(_SupportsMath):
@@ -227,6 +246,11 @@ class Elements(_SupportsMath):
         """Set all element values to the same value."""
         for f in fields(self):
             setattr(self, f.name, value)
+
+    def set_all_zeroes_to_value(self, value: float) -> None:
+        for f in fields(self):
+            if getattr(self, f.name) == 0.0:
+                setattr(self, f.name, value)
 
     def get_element(self, element: str) -> float:
         """Get the value of an element, including standalone elements if they exist."""
@@ -313,6 +337,8 @@ class EnemyFaction(StrEnum):
     GRINEER = auto()
     CORPUS = auto()
     INFESTED = auto()
+    OROKIN = auto()
+    MURMUR = auto()
     SENTIENT = auto()
 
 
@@ -334,6 +360,7 @@ class InGameBuff(_GeneralStat):
     final_multiplier: float = 1.0
     # special mod effects such as galvanized and blood rush
     callbacks: list[Callable[[Any], None]] = field(default_factory=list)
+
 
 class DotType(Enum):
     """Types of DOT effects in Warframe."""

@@ -78,19 +78,9 @@ class DamageCalculator:
             Total elemental damage multiplier
         """
         # Use combined_elements which includes weapon elements after combination
-        if self.enemy_stat.type == EnemyType.TRIDOLON:
-            # Apply Tridolon type bonuses (radiation and cold get 1.5x)
-            total = 0.0
-            for f in fields(self.combined_elements):
-                value = getattr(self.combined_elements, f.name)
-                if f.name in ("radiation", "cold"):
-                    total += value * 1.5
-                else:
-                    total += value
-            return total
-        else:
-            # No special type bonuses
-            return self.combined_elements.total()
+        return self.combined_elements.total_with_vulnerability(
+            self.enemy_stat.elements_vulnerability
+        )
 
     def calc_single_hit_without_elements(self) -> float:
         """
