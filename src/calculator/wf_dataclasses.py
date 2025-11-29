@@ -452,21 +452,6 @@ class DotState:
 
 
 @dataclass
-class DotCallback:
-    """
-    Callback for DOT-specific behavior modifications.
-    Similar to mod callbacks but for DOT mechanics.
-    """
-    func: Callable[[DotInstance, Any], DotInstance]
-    dot_type: DotType
-    description: str = ""
-
-    def __call__(self, dot_instance: DotInstance, *args: Any, **kwargs: Any) -> DotInstance:
-        """Execute the callback."""
-        return self.func(dot_instance, *args, **kwargs)
-
-
-@dataclass
 class DotConfig:
     """Configuration for a specific DOT type."""
     dot_type: DotType
@@ -474,7 +459,6 @@ class DotConfig:
     base_duration: float = 6.0
     tick_rate: float = 1.0
     damage_multiplier: float = 1.0
-    callbacks: list[DotCallback] = field(default_factory=list)
 
     def create_instance(self, base_damage: float, crit_chance: float = 0.0, crit_damage: float = 1.0) -> DotInstance:
         """
@@ -502,11 +486,8 @@ class DotConfig:
             total_duration=self.base_duration,
         )
 
-        # Apply callbacks to modify the instance
-        for callback in self.callbacks:
-            instance = callback(instance)
-
         return instance
+
 
 @dataclass
 class EnemyStat:

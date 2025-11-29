@@ -1,7 +1,9 @@
+from collections import defaultdict
 import random
 from dataclasses import fields
 from functools import reduce
 
+from src.calculator.dot_config import DOT_CONFIG_MAP
 from src.calculator.wf_dataclasses import (
     WeaponStat,
     StaticBuff,
@@ -9,9 +11,15 @@ from src.calculator.wf_dataclasses import (
     EnemyStat,
     EnemyFaction,
     EnemyType,
-    Elements, DotState, DotConfig, DotType, DotBehavior,
+    Elements,
+    DotState,
+    DotConfig,
+    DotType,
+    DotBehavior,
 )
 from src.data.mod_callbacks import CallbackType
+
+SIM_V2 = True
 
 
 class DamageCalculator:
@@ -43,24 +51,22 @@ class DamageCalculator:
         self.weapon_stat = weapon_stat
         self.static_buff = static_buff
         self.in_game_buff = in_game_buff
-        self.enemy_stat = enemy_stat
+        self.enemy_stat: EnemyStat = enemy_stat
         self.element_order = element_order or []
-        self.final_buff = in_game_buff + static_buff
+        self.final_buff: InGameBuff = in_game_buff + static_buff
 
         # apply IGB callbacks
         for callback in self.final_buff.callbacks:
             if callback.type == CallbackType.IN_GAME_BUFF:
                 callback(self.final_buff)
 
-        self.combined_elements = self.final_buff.elements + weapon_stat.elements
+        self.combined_elements: Elements = (
+            self.final_buff.elements + weapon_stat.elements
+        )
 
         if self.element_order:
             # Apply element combination directly to final_buff.elements
             self.combined_elements.combine_elements(self.element_order)
-
-        # Initialize DOT system
-        self.dot_state = enemy_stat.dot_state
-        self.dot_configs = self._initialize_dot_configs()
 
     def calc_elem(self) -> float:
         """
@@ -93,14 +99,14 @@ class DamageCalculator:
         Returns:
             Damage value for a single hit
         """
-        per_shot = (
+        per_hit = (
             self.weapon_stat.damage
             * self._get_base()
             * self._get_crit()
             * self._get_faction()
             * self.in_game_buff.final_multiplier
         )
-        return per_shot
+        return per_hit
 
     def calc_single_hit(self) -> float:
         return self.calc_single_hit_without_elements() * self.calc_elem()
@@ -114,9 +120,9 @@ class DamageCalculator:
         """
         muls = []
 
-        per_shot = self.calc_single_hit()
-        shot_per_sec = self._get_as() * self._get_ms()
-        muls += [per_shot, shot_per_sec]
+        per_hit = self.calc_single_hit()
+        hit_per_sec = self._get_as() * self._get_ms()
+        muls += [per_hit, hit_per_sec]
 
         if self.enemy_stat.type == EnemyType.TRIDOLON:
             muls.append(self._get_eidolon_non_crit_penalty())
@@ -156,33 +162,6 @@ class DamageCalculator:
 
         return reduce(lambda x, y: x * y, muls, 1)
 
-    def _initialize_dot_configs(self) -> dict[str, DotConfig]:
-        """Initialize DOT configurations based on combined elements."""
-        configs = {}
-
-        # Only create configs for elements that deal damage and have DOT effects
-        dot_elements = {
-            'heat': (DotType.HEAT, DotBehavior.REFRESH_ALL, 0.5),
-            'toxin': (DotType.TOXIN, DotBehavior.INDEPENDENT, 0.5),
-            'slash': (DotType.SLASH, DotBehavior.INDEPENDENT, 0.35),
-            'electricity': (DotType.ELECTRICITY, DotBehavior.INDEPENDENT, 0.5),
-            'gas': (DotType.GAS, DotBehavior.INDEPENDENT, 0.5),
-        }
-
-        for element_name, (dot_type, behavior, multiplier) in dot_elements.items():
-            element_value = getattr(self.combined_elements, element_name, 0)
-            if element_value > 0:
-                configs[element_name] = DotConfig(
-                    dot_type=dot_type,
-                    behavior=behavior,
-                    base_duration=6.0,
-                    tick_rate=1.0,
-                    damage_multiplier=multiplier,
-                    callbacks=[]
-                )
-
-        return configs
-
     def _get_eidolon_non_crit_penalty(self) -> float:
         """
         Calculate the penalty for non-critical hits against Eidolons.
@@ -210,7 +189,10 @@ class DamageCalculator:
         return self.weapon_stat.critical_chance * (1 + self.final_buff.critical_chance)
 
     def _get_cd(self) -> float:
-        return self.weapon_stat.critical_damage * (1 + self.final_buff.critical_damage) + self.in_game_buff.final_additive_cd
+        return (
+            self.weapon_stat.critical_damage * (1 + self.final_buff.critical_damage)
+            + self.in_game_buff.final_additive_cd
+        )
 
     def _get_crit(self) -> float:
         """
@@ -233,9 +215,7 @@ class DamageCalculator:
         Returns:
             faction damage multiplier
         """
-        total_faction = self.final_buff.faction.get(
-            self.enemy_stat.faction.value, 0
-        )
+        total_faction = self.final_buff.faction.get(self.enemy_stat.faction.value, 0)
         return 1 + total_faction
 
     def _get_ms(self) -> float:
@@ -276,50 +256,91 @@ class DamageCalculator:
             / self.combined_elements.total()
         )
 
-    def _get_element_weights(self) -> dict[str, float]:
+    def _simulate_crit(
+        self, random_seed: int | None = None, return_crit_level: bool = False
+    ) -> float:
         """
-        Get element weights for status proc rolling.
-        Uses actual element damage values from combined_elements.
-
-        Returns:
-            Dictionary of element names to their damage values
+        Simulate a critical hit, returns critical damage multiplier.
         """
-        weights = {}
-        base_damage = self.weapon_stat.damage * self._get_base()
+        if random_seed is not None:
+            random.seed(random_seed)
+        crit_level = int(self._get_cc()) + (
+            1 if random.random() < (self._get_cc() % 1) else 0
+        )
+        if return_crit_level:
+            return crit_level * (self._get_cd() - 1) + 1, crit_level
+        return crit_level * (self._get_cd() - 1) + 1
 
-        for f in fields(self.combined_elements):
-            element_value = getattr(self.combined_elements, f.name)
-            if element_value > 0:
-                weights[f.name] = base_damage * element_value
+    def _simulate_ms(self, random_seed: int | None = None) -> int:
+        """
+        Simulate a multishot, returns number of pellets.
+        """
+        if random_seed is not None:
+            random.seed(random_seed)
+        ms = int(self._get_ms()) + (1 if random.random() < (self._get_ms() % 1) else 0)
+        return ms
 
-        return weights
+    def _simulate_single_hit(self, random_seed: int | None = None) -> float:
+        """
+        Simulate a single hit. Applies debuffs and returns total direct damage.
+        """
+        if random_seed is not None:
+            random.seed(random_seed)
 
-    def apply_status_proc(self, element: str):
+        proc_counts = defaultdict(int)
+        fixed_base_damage = (
+            self.weapon_stat.damage
+            * self._get_base()
+            * self._get_faction()
+            * self.in_game_buff.final_multiplier
+        )
+        total_base_damage = 0.0
+        # don't consider elements here
+        num_pellets = self._simulate_ms()
+        for _ in range(num_pellets):
+            base_damage = fixed_base_damage * self._simulate_crit()
+            procs = self._roll_status_procs()
+            for proc in procs:
+                proc_counts[proc] += 1
+                self.apply_status_proc(proc)
+            total_base_damage += base_damage
+
+        # apply elements to total base damage
+        total_base_damage *= self.combined_elements.total_with_vulnerability(
+            self.enemy_stat.elements_vulnerability
+        )
+        return total_base_damage, proc_counts
+
+    def apply_status_proc(self, element: str, base_damage: float | None = None):
         """
         Apply a status proc and create DOT instance.
+        Currently only supports dots, will support other status effects in the future.
 
         Args:
             element: Element type that procced
         """
-        if element not in self.dot_configs:
+        if element not in DOT_CONFIG_MAP:
             return
 
-        config = self.dot_configs[element]
+        config = DOT_CONFIG_MAP[element]
 
         # Calculate base damage for this DOT
-        base_damage = self.weapon_stat.damage * self._get_base()
+        if base_damage is None:
+            # keep for V1 compatibility, remove when fully tested
+            base_damage = (
+                self.weapon_stat.damage
+                * self._get_base()
+                * self._get_faction()
+                * self.in_game_buff.final_multiplier
+            )
         element_multiplier = self.final_buff.elements.get_element(element) + 1
-        proc_damage = base_damage * element_multiplier * self._get_faction() * self.in_game_buff.final_multiplier
-
-        # Get crit stats for per-tick rolling
-        crit_chance = self._get_cc()
-        crit_damage = self._get_cd()
+        proc_damage = base_damage * element_multiplier * self._get_faction()
 
         # Create DOT instance
-        dot_instance = config.create_instance(proc_damage, crit_chance, crit_damage)
-        self.dot_state.add_dot(dot_instance, config.behavior)
+        dot_instance = config.create_instance(proc_damage)
+        self.enemy_stat.dot_state.add_dot(dot_instance, config.behavior)
 
-    def _roll_status_procs(self, status_chance: float) -> list[str]:
+    def _roll_status_procs(self, status_chance: float | None = None) -> list[str]:
         """
         Roll for status procs based on status chance and element weights.
 
@@ -329,6 +350,8 @@ class DamageCalculator:
         Returns:
             List of elements that procced
         """
+        if not status_chance:
+            status_chance = self._get_sc()
         procs = []
 
         # Calculate number of procs
@@ -340,7 +363,7 @@ class DamageCalculator:
             return procs
 
         # Get element weights
-        weights = self._get_element_weights()
+        weights = self.combined_elements.to_dict()
         if not weights:
             return procs
 
@@ -360,11 +383,14 @@ class DamageCalculator:
 
         return procs
 
+    def _reset_simulation(self):
+        """
+        Reset the simulation state.
+        """
+        self.enemy_stat.dot_state = DotState()
+
     def simulate_combat(
-            self,
-            duration: float,
-            time_step: float = 1,
-            verbose: bool = False
+        self, duration: float, time_step: float = 1, verbose: bool = False
     ) -> dict:
         """
         Simulate combat over a period of time with actual DOT tracking.
@@ -379,16 +405,16 @@ class DamageCalculator:
         """
 
         # Reset DOT state
-        self.dot_state = DotState()
+        self._reset_simulation()
 
         total_direct_damage = 0.0
         total_dot_damage = {dot_type: 0.0 for dot_type in DotType}
-        proc_counts = {}
+        proc_counts = defaultdict(int)
 
         time_elapsed = 0.0
         shot_timer = 0.0
         attack_speed = self._get_as()
-        time_between_shots = 1.0 / attack_speed if attack_speed > 0 else float('inf')
+        time_between_shots = 1.0 / attack_speed if attack_speed > 0 else float("inf")
 
         status_chance = self._get_sc()
         multishot = self._get_ms()
@@ -407,9 +433,18 @@ class DamageCalculator:
         while time_elapsed < duration:
             # Fire weapon
             while shot_timer <= 0 and time_elapsed < duration:
+                shots_fired += 1
+                shot_timer += time_between_shots
+
+                if SIM_V2:
+                    direct_damage, proc_counts = self._simulate_single_hit()
+                    total_direct_damage += direct_damage
+                    for proc, count in proc_counts.items():
+                        proc_counts[proc] += count
+                    continue
+
                 direct_damage = self.calc_single_hit()
                 total_direct_damage += direct_damage
-                shots_fired += 1
 
                 # Determine number of pellets
                 num_pellets = int(multishot)
@@ -422,13 +457,11 @@ class DamageCalculator:
 
                     for element in procs:
                         proc_counts[element] = proc_counts.get(element, 0) + 1
-                        if element in self.dot_configs:
+                        if element in DOT_CONFIG_MAP:
                             self.apply_status_proc(element)
 
-                shot_timer += time_between_shots
-
             # Tick DOTs
-            dot_damages = self.dot_state.tick_all(time_step)
+            dot_damages = self.enemy_stat.dot_state.tick_all(time_step)
             for dot_type, damage in dot_damages.items():
                 total_dot_damage[dot_type] += damage
 
@@ -463,29 +496,29 @@ class DamageCalculator:
             print(f"{'=' * 60}\n")
 
         return {
-            'single_hit': self.calc_single_hit(),
-            'direct_dps': total_direct_damage / duration,
-            'theoretical_dot_dps': self.calc_dots(),
-            'simulated_dot_dps': total_dot / duration,
-            'total_dps': total_damage / duration,
-            'total_direct_damage': total_direct_damage,
-            'total_dot_damage': filtered_dot_damage,
-            'active_dot_stacks': {
-                dot_type.value: self.dot_state.get_active_stacks(dot_type)
+            "single_hit": self.calc_single_hit(),
+            "direct_dps": total_direct_damage / duration,
+            "theoretical_dot_dps": self.calc_dots(),
+            "simulated_dot_dps": total_dot / duration,
+            "total_dps": total_damage / duration,
+            "total_direct_damage": total_direct_damage,
+            "total_dot_damage": filtered_dot_damage,
+            "active_dot_stacks": {
+                dot_type.value: self.enemy_stat.dot_state.get_active_stacks(dot_type)
                 for dot_type in DotType
-                if self.dot_state.get_active_stacks(dot_type) > 0
+                if self.enemy_stat.dot_state.get_active_stacks(dot_type) > 0
             },
-            'proc_counts': proc_counts,
-            'shots_fired': shots_fired,
-            'duration': duration,
+            "proc_counts": proc_counts,
+            "shots_fired": shots_fired,
+            "duration": duration,
         }
 
     def simulate_combat_multiple(
-            self,
-            duration: float,
-            num_simulations: int = 10,
-            time_step: float = 1.0,
-            verbose: bool = False
+        self,
+        duration: float,
+        num_simulations: int = 10,
+        time_step: float = 1.0,
+        verbose: bool = False,
     ) -> dict:
         """
         Run multiple combat simulations and return statistics (min, max, avg).
@@ -505,48 +538,50 @@ class DamageCalculator:
 
         for i in range(num_simulations):
             result = self.simulate_combat(
-                duration=duration,
-                time_step=time_step,
-                verbose=True
+                duration=duration, time_step=time_step, verbose=True
             )
 
-            direct_dps_results.append(result['direct_dps'])
-            dot_dps_results.append(result['simulated_dot_dps'])
-            total_dps_results.append(result['total_dps'])
+            direct_dps_results.append(result["direct_dps"])
+            dot_dps_results.append(result["simulated_dot_dps"])
+            total_dps_results.append(result["total_dps"])
 
         if verbose:
             print(f"\n{'=' * 60}")
             print(f"MULTIPLE SIMULATIONS COMPLETE ({num_simulations} runs)")
             print(f"{'=' * 60}")
             print(
-                f"Direct DPS - Min: {min(direct_dps_results):.2f}, Max: {max(direct_dps_results):.2f}, Avg: {sum(direct_dps_results) / len(direct_dps_results):.2f}")
+                f"Direct DPS - Min: {min(direct_dps_results):.2f}, Max: {max(direct_dps_results):.2f}, Avg: {sum(direct_dps_results) / len(direct_dps_results):.2f}"
+            )
             print(
-                f"DOT DPS - Min: {min(dot_dps_results):.2f}, Max: {max(dot_dps_results):.2f}, Avg: {sum(dot_dps_results) / len(dot_dps_results):.2f}")
+                f"DOT DPS - Min: {min(dot_dps_results):.2f}, Max: {max(dot_dps_results):.2f}, Avg: {sum(dot_dps_results) / len(dot_dps_results):.2f}"
+            )
             print(
-                f"Total DPS - Min: {min(total_dps_results):.2f}, Max: {max(total_dps_results):.2f}, Avg: {sum(total_dps_results) / len(total_dps_results):.2f}")
+                f"Total DPS - Min: {min(total_dps_results):.2f}, Max: {max(total_dps_results):.2f}, Avg: {sum(total_dps_results) / len(total_dps_results):.2f}"
+            )
             print(f"{'=' * 60}\n")
 
         return {
-            'simulated_stats': {
-                'direct_dps': {
-                    'min': min(direct_dps_results),
-                    'max': max(direct_dps_results),
-                    'avg': sum(direct_dps_results) / len(direct_dps_results)
+            "simulated_stats": {
+                "direct_dps": {
+                    "min": min(direct_dps_results),
+                    "max": max(direct_dps_results),
+                    "avg": sum(direct_dps_results) / len(direct_dps_results),
                 },
-                'dot_dps': {
-                    'min': min(dot_dps_results),
-                    'max': max(dot_dps_results),
-                    'avg': sum(dot_dps_results) / len(dot_dps_results)
+                "dot_dps": {
+                    "min": min(dot_dps_results),
+                    "max": max(dot_dps_results),
+                    "avg": sum(dot_dps_results) / len(dot_dps_results),
                 },
-                'total_dps': {
-                    'min': min(total_dps_results),
-                    'max': max(total_dps_results),
-                    'avg': sum(total_dps_results) / len(total_dps_results)
-                }
+                "total_dps": {
+                    "min": min(total_dps_results),
+                    "max": max(total_dps_results),
+                    "avg": sum(total_dps_results) / len(total_dps_results),
+                },
             },
-            'num_simulations': num_simulations,
-            'duration': duration
+            "num_simulations": num_simulations,
+            "duration": duration,
         }
+
 
 if __name__ == "__main__":
     """
