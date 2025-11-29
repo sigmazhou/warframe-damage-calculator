@@ -207,6 +207,91 @@ input:focus, select:focus {
     flex: 1;
 }
 
+/* Riven Mod Styles */
+.riven-item {
+    border: 2px solid var(--accent-color) !important;
+    padding: 6px !important;
+    margin-bottom: 4px !important;
+    background: rgba(74, 158, 255, 0.08) !important;
+    display: block !important;
+}
+
+.riven-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.riven-header .mod-name {
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.riven-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.riven-stat-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.riven-stat-search {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+}
+
+.riven-stat-search-input {
+    width: 100%;
+    padding: 3px 4px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    color: var(--text-color);
+    font-size: 11px;
+}
+
+.riven-stat-search-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.riven-stat-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+}
+
+.riven-stat-value {
+    width: 60px;
+    padding: 3px 4px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    color: var(--text-color);
+    font-size: 11px;
+}
+
+.riven-stat-value:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .element-list {
     max-height: 80px;
     overflow-y: auto;

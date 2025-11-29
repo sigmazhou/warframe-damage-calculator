@@ -254,7 +254,7 @@ def get_ingame_buffs():
 @app.route("/api/calculate-damage", methods=["POST"])
 def calculate_damage():
     """
-    Calculate damage based on weapon stats, mods, enemy type, and buffs.
+    Calculate damage based on weapon stats, mods, rivens, enemy type, and buffs.
 
     Request body:
         {
@@ -272,7 +272,14 @@ def calculate_damage():
                     ...
                 }
             },
-            "mods": ["mod_name1", "mod_name2", ...],
+            "mods": ["mod_name1", "riven_1", "mod_name2", ...],
+            "rivens": {
+                "riven_1": {
+                    "damage": 2.15,
+                    "critical_chance": 1.38,
+                    "element_heat": 1.20
+                }
+            },
             "enemy": {
                 "faction": str,  # EnemyFaction value (grineer, corpus, etc)
                 "type": str      # EnemyType value (tridolon, etc)
@@ -339,6 +346,10 @@ def calculate_damage():
         mod_list = [mod for mod in data.get("mods", []) if mod]
         logger.info(f"Mods applied: {mod_list}")
 
+        # Parse rivens
+        rivens_data = data.get("rivens", {})
+        logger.info(f"Rivens data: {rivens_data}")
+
         # Parse in-game buffs
         in_game_buffs_data = data.get("in_game_buffs", {})
         logger.info(f"In-game buffs (raw): {in_game_buffs_data}")
@@ -347,9 +358,9 @@ def calculate_damage():
         processed_buffs = unflatten_buff_data(in_game_buffs_data)
         logger.info(f"In-game buffs (processed): {processed_buffs}")
 
-        # Parse mods and buffs - now returns (InGameBuff, mods_order, igb_order)
+        # Parse mods, rivens, and buffs - now returns (InGameBuff, mods_order, igb_order)
         in_game_buff, element_order_from_mods, element_order_from_igb = (
-            parser.parse_mods_and_stats(mod_list, processed_buffs)
+            parser.parse_mods_and_stats(mod_list, processed_buffs, rivens_data)
         )
         logger.info(
             f"InGameBuff - damage: {in_game_buff.damage}, multishot: {in_game_buff.multishot}, "

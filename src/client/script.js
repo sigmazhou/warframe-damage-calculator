@@ -30,6 +30,81 @@
             // Update remove button visibility initially
             updateRemoveButtons();
 
+            /**
+             * Setup a searchable dropdown for buffs/stats
+             * @param {HTMLElement} searchInput - The input element for searching
+             * @param {HTMLElement} searchResults - The container for search results
+             * @param {Function} onSelect - Callback when an item is selected (receives buff object, searchInput)
+             * @param {Object} options - Configuration options
+             * @param {boolean} options.clearOnSelect - Clear input after selection (default: true)
+             * @param {string} options.noResultsMessage - Message when no results (default: 'No results found')
+             * @param {Function} options.formatDisplay - Function to format display text (default: buff.name)
+             * @param {Function} options.onInputChange - Called before filtering, can modify behavior (optional)
+             */
+            function setupSearchableDropdown(searchInput, searchResults, onSelect, options = {}) {
+                const {
+                    clearOnSelect = true,
+                    noResultsMessage = 'No results found',
+                    formatDisplay = (buff) => buff.name,
+                    onInputChange = null
+                } = options;
+
+                // Search functionality
+                searchInput.addEventListener('input', function() {
+                    const query = this.value.trim().toLowerCase();
+
+                    // Allow custom input change handling
+                    if (onInputChange) {
+                        onInputChange(this, query);
+                    }
+
+                    if (query.length < 1) {
+                        searchResults.style.display = 'none';
+                        return;
+                    }
+
+                    // Filter available buffs
+                    const matchingBuffs = availableBuffs.filter(buff =>
+                        buff.name.toLowerCase().includes(query)
+                    );
+
+                    // Render results
+                    searchResults.innerHTML = '';
+                    if (matchingBuffs.length === 0) {
+                        searchResults.innerHTML = `<div class="search-result-item">${noResultsMessage}</div>`;
+                    } else {
+                        matchingBuffs.forEach(buff => {
+                            const item = document.createElement('div');
+                            item.className = 'search-result-item';
+                            item.textContent = formatDisplay(buff);
+                            item.addEventListener('click', function() {
+                                onSelect(buff, searchInput);
+                                if (clearOnSelect) {
+                                    searchInput.value = '';
+                                }
+                                searchResults.style.display = 'none';
+                            });
+                            searchResults.appendChild(item);
+                        });
+                    }
+                    searchResults.style.display = 'block';
+                });
+
+                // Hide results when clicking outside
+                searchInput.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        searchResults.style.display = 'none';
+                    }, 200);
+                });
+
+                // Show results when focusing if there's a query
+                searchInput.addEventListener('focus', function() {
+                    if (this.value.trim().length >= 1) {
+                        this.dispatchEvent(new Event('input'));
+                    }
+                });
+            }
+
             function setupBuildEventListeners(build) {
                 const buildId = build.getAttribute('data-build-id');
                 const modSearch = build.querySelector('.mod-search-input');
@@ -44,6 +119,24 @@
                         const query = this.value.trim();
                         if (query.length < 1) {
                             searchResults.style.display = 'none';
+                            return;
+                        }
+
+                        // Check if query matches "riven" (prefix search)
+                        if ('riven'.startsWith(query.toLowerCase())) {
+                            searchResults.innerHTML = '';
+                            const rivenItem = document.createElement('div');
+                            rivenItem.className = 'search-result-item';
+                            rivenItem.textContent = 'Riven Mod (Special)';
+                            rivenItem.style.fontWeight = 'bold';
+                            rivenItem.style.color = 'var(--accent-color)';
+                            rivenItem.addEventListener('click', function() {
+                                addRivenToBuild(build);
+                                modSearch.value = '';
+                                searchResults.style.display = 'none';
+                            });
+                            searchResults.appendChild(rivenItem);
+                            searchResults.style.display = 'block';
                             return;
                         }
 
@@ -78,35 +171,15 @@
                 }
 
                 if (buffSearch && buffSearchResults) {
-                    buffSearch.addEventListener('input', function() {
-                        const query = this.value.trim().toLowerCase();
-                        if (query.length < 1) {
-                            buffSearchResults.style.display = 'none';
-                            return;
+                    setupSearchableDropdown(
+                        buffSearch,
+                        buffSearchResults,
+                        (buff) => addBuffToBuild(build, buff.name, buff.type),
+                        {
+                            clearOnSelect: true,
+                            noResultsMessage: 'No buffs found'
                         }
-
-                        const matchingBuffs = availableBuffs.filter(buff =>
-                            buff.name.toLowerCase().includes(query)
-                        );
-
-                        buffSearchResults.innerHTML = '';
-                        if (matchingBuffs.length === 0) {
-                            buffSearchResults.innerHTML = '<div class="search-result-item">No buffs found</div>';
-                        } else {
-                            matchingBuffs.forEach(buff => {
-                                const item = document.createElement('div');
-                                item.className = 'search-result-item';
-                                item.textContent = buff.name;
-                                item.addEventListener('click', function() {
-                                    addBuffToBuild(build, buff.name, buff.type);
-                                    buffSearch.value = '';
-                                    buffSearchResults.style.display = 'none';
-                                });
-                                buffSearchResults.appendChild(item);
-                            });
-                        }
-                        buffSearchResults.style.display = 'block';
-                    });
+                    );
                 }
 
                 if (addElementBtn) {
@@ -356,6 +429,112 @@
                 selectedBuffs.appendChild(buffItem);
             }
 
+            function addRivenToBuild(build) {
+                const selectedMods = build.querySelector('.selected-mods-container');
+
+                // Generate unique riven ID using incrementing counter
+                // Get current counter or initialize to 0
+                let rivenCounter = parseInt(build.dataset.rivenCounter || '0');
+                rivenCounter++;
+                build.dataset.rivenCounter = rivenCounter;
+                const rivenId = `riven_${rivenCounter}`;
+
+                // Use availableBuffs for riven stat options
+                const rivenStatOptions = [
+                    { value: '', label: '-- Select Stat --' }
+                ];
+
+                // Add all available buffs as options
+                availableBuffs.forEach(buff => {
+                    rivenStatOptions.push({
+                        value: buff.name,
+                        label: buff.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                    });
+                });
+
+                // Create riven item
+                const rivenItem = document.createElement('div');
+                rivenItem.className = 'mod-item riven-item';
+                rivenItem.dataset.modType = 'riven';
+                rivenItem.dataset.rivenId = rivenId;
+
+                // Build riven HTML
+                let rivenHTML = `
+                    <div class="riven-header">
+                        <span class="mod-name" style="font-weight: bold; color: var(--accent-color);">Riven Mod (${rivenId})</span>
+                        <button class="remove-mod-btn" data-mod-id="${rivenId}">X</button>
+                    </div>
+                    <div class="riven-stats-grid">
+                `;
+
+                // Create 4 stat rows with searchable inputs
+                for (let i = 0; i < 4; i++) {
+                    rivenHTML += `
+                        <div class="riven-stat-row" data-stat-index="${i}">
+                            <div class="riven-stat-search">
+                                <input type="text" class="riven-stat-search-input"
+                                       placeholder="Search stat..." data-stat-index="${i}">
+                                <div class="riven-stat-search-results"></div>
+                            </div>
+                            <input type="number" class="riven-stat-value" data-stat-index="${i}"
+                                   step="0.01" placeholder="Value" disabled>
+                        </div>
+                    `;
+                }
+
+                rivenHTML += '</div>';
+                rivenItem.innerHTML = rivenHTML;
+
+                // Attach event listeners
+                rivenItem.querySelector('.remove-mod-btn').addEventListener('click', function() {
+                    selectedMods.removeChild(rivenItem);
+                });
+
+                // Attach searchable stat selector listeners
+                rivenItem.querySelectorAll('.riven-stat-search-input').forEach(searchInput => {
+                    const index = searchInput.dataset.statIndex;
+                    const statRow = rivenItem.querySelector(`.riven-stat-row[data-stat-index="${index}"]`);
+                    const searchResults = statRow.querySelector('.riven-stat-search-results');
+                    const valueInput = rivenItem.querySelector(`.riven-stat-value[data-stat-index="${index}"]`);
+
+                    // Initialize selected stat tracking
+                    searchInput.dataset.selectedStat = '';
+
+                    // Setup searchable dropdown with riven-specific behavior
+                    setupSearchableDropdown(
+                        searchInput,
+                        searchResults,
+                        (buff, input) => {
+                            // Set selected stat and update input
+                            input.value = buff.name.replace(/_/g, ' ');
+                            input.dataset.selectedStat = buff.name;
+
+                            // Enable value input
+                            valueInput.disabled = false;
+                            if (!valueInput.value) {
+                                valueInput.value = 0;
+                            }
+                            valueInput.focus();
+                        },
+                        {
+                            clearOnSelect: false, // Keep the selected stat visible
+                            noResultsMessage: 'No stats found',
+                            formatDisplay: (buff) => buff.name.replace(/_/g, ' '),
+                            onInputChange: (input, query) => {
+                                // Clear selection if user modifies the text after selecting
+                                if (input.dataset.selectedStat && input.value !== input.dataset.selectedStat.replace(/_/g, ' ')) {
+                                    input.dataset.selectedStat = '';
+                                    valueInput.disabled = true;
+                                    valueInput.value = '';
+                                }
+                            }
+                        }
+                    );
+                });
+
+                selectedMods.appendChild(rivenItem);
+            }
+
             function addBuild() {
                 buildIdCounter++;
                 const container = document.getElementById('builds-container');
@@ -364,6 +543,21 @@
                 // Clone the last build
                 const newBuild = lastBuild.cloneNode(true);
                 newBuild.setAttribute('data-build-id', buildIdCounter);
+
+                // Preserve riven counter for cloned rivens
+                // Scan cloned rivens to find max ID and set counter accordingly
+                const clonedRivens = newBuild.querySelectorAll('.riven-item');
+                let maxRivenId = 0;
+                clonedRivens.forEach(riven => {
+                    const rivenId = riven.dataset.rivenId;
+                    if (rivenId && rivenId.startsWith('riven_')) {
+                        const rivenNum = parseInt(rivenId.replace('riven_', ''));
+                        if (rivenNum > maxRivenId) {
+                            maxRivenId = rivenNum;
+                        }
+                    }
+                });
+                newBuild.dataset.rivenCounter = maxRivenId.toString();
 
                 // Update build title
                 const titleDiv = newBuild.querySelector('.build-title');
@@ -444,12 +638,35 @@
                         elements: elements
                     };
 
-                    // Collect mods
+                    // Collect mods (including riven IDs)
                     const mods = [];
                     build.querySelectorAll('.mod-item:not(.buff-item)').forEach(item => {
                         const modId = item.querySelector('.remove-mod-btn').getAttribute('data-mod-id');
                         if (modId) {
                             mods.push(modId);
+                        }
+                    });
+
+                    // Collect rivens data as object with IDs as keys
+                    const rivensData = {};
+                    build.querySelectorAll('.riven-item').forEach(rivenItem => {
+                        const rivenId = rivenItem.dataset.rivenId;
+                        const rivenStats = {};
+
+                        rivenItem.querySelectorAll('.riven-stat-search-input').forEach(searchInput => {
+                            const statType = searchInput.dataset.selectedStat;
+                            if (statType) {
+                                const index = searchInput.dataset.statIndex;
+                                const valueInput = rivenItem.querySelector(`.riven-stat-value[data-stat-index="${index}"]`);
+                                const value = parseFloat(valueInput.value || 0);
+
+                                // Store as key-value pairs like in-game buffs
+                                rivenStats[statType] = value;
+                            }
+                        });
+
+                        if (Object.keys(rivenStats).length > 0) {
+                            rivensData[rivenId] = rivenStats;
                         }
                     });
 
@@ -475,15 +692,22 @@
                     });
 
                     // Create calculation promise for this build
+                    const requestBody = {
+                        weapon: weaponConfig,
+                        mods: mods,
+                        enemy: enemyConfig,
+                        in_game_buffs: inGameBuffs
+                    };
+
+                    // Add rivens if present
+                    if (Object.keys(rivensData).length > 0) {
+                        requestBody.rivens = rivensData;
+                    }
+
                     const calcPromise = fetch('/api/calculate-damage', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            weapon: weaponConfig,
-                            mods: mods,
-                            enemy: enemyConfig,
-                            in_game_buffs: inGameBuffs
-                        })
+                        body: JSON.stringify(requestBody)
                     })
                     .then(response => response.json())
                     .then(data => {

@@ -65,13 +65,13 @@ class ModParser:
             return json.load(f)
 
     def parse_mods_and_stats(
-        self, mod_names: list[str], in_game_stats: dict = None
+        self, mod_names: list[str], in_game_stats: dict = None, rivens: dict = None
     ) -> tuple[InGameBuff, list[str], list[str]]:
         """
-        Parse a list of mod names and in-game stats into InGameBuff and element orders.
+        Parse a list of mod names, rivens, and in-game stats into InGameBuff and element orders.
 
         Args:
-            mod_names: List of mod names to include
+            mod_names: List of mod names to include (can include riven IDs like "riven_1")
             in_game_stats: Dictionary of in-game stats (optional)
                 - galvanized_shot: int (number of stacks)
                 - galvanized_aptitude: int (number of stacks)
@@ -81,6 +81,10 @@ class ModParser:
                 - final_multiplier: float (final damage multiplier)
                 - elements: dict (additional elemental damage)
                 - element_order: list (order of elements for in-game buffs)
+            rivens: Dictionary of riven data (optional)
+                - Keys are riven IDs (e.g., "riven_1")
+                - Values are dicts with stat key-value pairs (same format as in-game buffs)
+                  Example: {"damage": 2.15, "element_heat": 1.20}
 
         Returns:
             Tuple of (InGameBuff, element_order_from_mods, element_order_from_igb)
@@ -101,8 +105,24 @@ class ModParser:
         # Track element order from mods
         element_order_from_mods = []
 
-        # Process each mod
+        # Ensure rivens is not None
+        if rivens is None:
+            rivens = {}
+
+        # Process each mod (including rivens)
         for mod_name in mod_names:
+            # Check if this is a riven
+            if mod_name.startswith("riven_"):
+                if mod_name in rivens:
+                    riven_data = rivens[mod_name]
+                    # Riven data is already in the same format as in-game buffs
+                    riven_element_order = self._apply_stats_to_buff(riven_data, in_game_buff)
+                    element_order_from_mods.extend(riven_element_order)
+                else:
+                    print(f"Warning: Riven '{mod_name}' not found in rivens data")
+                continue
+
+            # Regular mod processing
             if mod_name not in self.mod_data:
                 print(f"Warning: Mod '{mod_name}' not found in database")
                 continue
@@ -248,7 +268,7 @@ class ModParser:
         if mod_name and mod_name in CALLBACK_MAPPING:
             in_game_buff.callbacks.append(CALLBACK_MAPPING[mod_name])
 
-        return element_order
+        return element_order.reverse()  # riven buff applies in reverse order
 
     def get_available_mods(self) -> list[str]:
         """Get list of all available mod names."""
