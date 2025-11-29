@@ -25,7 +25,7 @@ class _SupportsMath:
         """
         Add two dataclass instances together, combining all field values.
 
-        For each field in self, attempts to add values from other.
+        For each field in self, attempts to add values from others.
         Fields missing in other are copied from self using copy.copy().
         Subclasses can customize behavior through _combine_field.
 
@@ -349,8 +349,6 @@ class DotBehavior(Enum):
     """DOT stacking and refresh behaviors."""
     REFRESH_ALL = "refresh_all"  # Heat: refreshes all existing stacks
     INDEPENDENT = "independent"  # Toxin: independent timers per stack
-    SNAPSHOT = "snapshot"  # Slash: snapshot on application
-
 
 @dataclass
 class DotInstance:
@@ -409,10 +407,6 @@ class DotState:
 
         elif behavior == DotBehavior.INDEPENDENT:
             # Toxin behavior: independent timers
-            self.active_dots[dot_type].append(dot_instance)
-
-        elif behavior == DotBehavior.SNAPSHOT:
-            # Slash behavior: snapshot damage on application
             self.active_dots[dot_type].append(dot_instance)
 
     def tick_all(self, delta_time: float) -> dict[DotType, float]:

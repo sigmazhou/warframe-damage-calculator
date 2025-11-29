@@ -164,7 +164,7 @@ class DamageCalculator:
         dot_elements = {
             'heat': (DotType.HEAT, DotBehavior.REFRESH_ALL, 0.5),
             'toxin': (DotType.TOXIN, DotBehavior.INDEPENDENT, 0.5),
-            'slash': (DotType.SLASH, DotBehavior.SNAPSHOT, 0.35),
+            'slash': (DotType.SLASH, DotBehavior.INDEPENDENT, 0.35),
             'electricity': (DotType.ELECTRICITY, DotBehavior.INDEPENDENT, 0.5),
             'gas': (DotType.GAS, DotBehavior.INDEPENDENT, 0.5),
         }
@@ -308,7 +308,7 @@ class DamageCalculator:
 
         # Calculate base damage for this DOT
         base_damage = self.weapon_stat.damage * self._get_base()
-        element_multiplier = getattr(self.combined_elements, element, 0)
+        element_multiplier = self.final_buff.elements.get_element(element) + 1
         proc_damage = base_damage * element_multiplier * self._get_faction() * self.in_game_buff.final_multiplier
 
         # Get crit stats for per-tick rolling
@@ -363,7 +363,7 @@ class DamageCalculator:
     def simulate_combat(
             self,
             duration: float,
-            time_step: float = 0.1,
+            time_step: float = 1,
             verbose: bool = False
     ) -> dict:
         """
@@ -484,7 +484,7 @@ class DamageCalculator:
             self,
             duration: float,
             num_simulations: int = 10,
-            time_step: float = 0.1,
+            time_step: float = 1.0,
             verbose: bool = False
     ) -> dict:
         """
@@ -507,7 +507,7 @@ class DamageCalculator:
             result = self.simulate_combat(
                 duration=duration,
                 time_step=time_step,
-                verbose=False
+                verbose=True
             )
 
             direct_dps_results.append(result['direct_dps'])
