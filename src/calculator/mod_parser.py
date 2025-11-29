@@ -256,6 +256,17 @@ class ModParser:
                 for faction_key, faction_value in value.items():
                     self._add_faction_to_buff(in_game_buff, faction_key, faction_value)
 
+            # Handle riven-style element stats (element_heat, element_cold, etc.)
+            elif stat_key.startswith("element_"):
+                element_name = stat_key.replace("element_", "")
+                if self._add_element_to_buff(in_game_buff, element_name, value):
+                    element_order.append(element_name)
+
+            # Handle riven-style faction stats (faction_grineer, faction_corpus, etc.)
+            elif stat_key.startswith("faction_"):
+                faction_name = stat_key.replace("faction_", "")
+                self._add_faction_to_buff(in_game_buff, faction_name, value)
+
             # Try direct field mapping (in-game stats or unmapped mod stats)
             else:
                 if hasattr(in_game_buff, stat_key):

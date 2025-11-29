@@ -70,42 +70,6 @@ def flatten_buff_fields(buff_fields):
     return flattened
 
 
-def unflatten_buff_data(buff_data):
-    """
-    Unflatten buff data by reconstructing faction dict and elements dict.
-
-    Args:
-        buff_data: Dictionary with flattened keys (e.g., faction_grineer, element_heat)
-
-    Returns:
-        Dictionary with nested faction and elements structures
-    """
-    processed = {}
-    faction_dict = {}
-    elements_dict = {}
-
-    for key, value in buff_data.items():
-        if key.startswith("faction_"):
-            # Extract faction name (e.g., faction_grineer -> grineer)
-            faction = key[len("faction_") :]
-            faction_dict[faction] = value
-        elif key.startswith("element_"):
-            # Extract element name (e.g., element_heat -> heat)
-            element = key[len("element_") :]
-            elements_dict[element] = value
-        else:
-            # Regular buff field
-            processed[key] = value
-
-    # Add reconstructed nested structures if they have values
-    if faction_dict:
-        processed["faction"] = faction_dict
-    if elements_dict:
-        processed["elements"] = elements_dict
-
-    return processed
-
-
 @app.route("/")
 def index():
     """Serve the main HTML page."""
@@ -352,15 +316,11 @@ def calculate_damage():
 
         # Parse in-game buffs
         in_game_buffs_data = data.get("in_game_buffs", {})
-        logger.info(f"In-game buffs (raw): {in_game_buffs_data}")
+        logger.info(f"In-game buffs: {in_game_buffs_data}")
 
-        # Unflatten buff data (reconstruct faction and elements)
-        processed_buffs = unflatten_buff_data(in_game_buffs_data)
-        logger.info(f"In-game buffs (processed): {processed_buffs}")
-
-        # Parse mods, rivens, and buffs - now returns (InGameBuff, mods_order, igb_order)
+        # Parse mods, rivens, and buffs - handles all formats (flat keys and nested dicts)
         in_game_buff, element_order_from_mods, element_order_from_igb = (
-            parser.parse_mods_and_stats(mod_list, processed_buffs, rivens_data)
+            parser.parse_mods_and_stats(mod_list, in_game_buffs_data, rivens_data)
         )
         logger.info(
             f"InGameBuff - damage: {in_game_buff.damage}, multishot: {in_game_buff.multishot}, "
