@@ -337,7 +337,12 @@ class DamageCalculator:
         proc_damage = base_damage * element_multiplier * self._get_faction()
 
         # Create DOT instance
-        dot_instance = config.create_instance(proc_damage)
+        if SIM_V2:
+            dot_instance = config.create_instance(proc_damage)
+        else:
+            dot_instance = config.create_instance(
+                base_damage, self._get_cc(), self._get_cd()
+            )
         self.enemy_stat.dot_state.add_dot(dot_instance, config.behavior)
 
     def _roll_status_procs(self, status_chance: float | None = None) -> list[str]:
