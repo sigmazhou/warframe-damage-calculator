@@ -105,6 +105,21 @@
                 });
             }
 
+            /**
+             * Helper to reattach a remove button with a new click handler
+             * @param {HTMLElement} item - The item containing the remove button
+             * @param {string} buttonSelector - Selector for the remove button
+             * @param {Function} onClickHandler - Click handler function
+             */
+            function reattachRemoveButton(item, buttonSelector, onClickHandler) {
+                const removeBtn = item.querySelector(buttonSelector);
+                if (removeBtn) {
+                    const newBtn = removeBtn.cloneNode(true);
+                    removeBtn.parentNode.replaceChild(newBtn, removeBtn);
+                    newBtn.addEventListener('click', onClickHandler);
+                }
+            }
+
             function setupBuildEventListeners(build) {
                 const buildId = build.getAttribute('data-build-id');
                 const modSearch = build.querySelector('.mod-search-input');
@@ -194,15 +209,9 @@
                 // Reattach weapon element remove buttons
                 const weaponElements = build.querySelector('.weapon-elements-container');
                 build.querySelectorAll('.element-item').forEach(item => {
-                    const removeBtn = item.querySelector('.remove-weapon-element-btn');
-                    if (removeBtn) {
-                        // Remove old listener by replacing the button
-                        const newBtn = removeBtn.cloneNode(true);
-                        removeBtn.parentNode.replaceChild(newBtn, removeBtn);
-                        newBtn.addEventListener('click', function() {
-                            weaponElements.removeChild(item);
-                        });
-                    }
+                    reattachRemoveButton(item, '.remove-weapon-element-btn', () => {
+                        weaponElements.removeChild(item);
+                    });
 
                     // Reattach value input listener
                     const valueInput = item.querySelector('.element-value-input');
@@ -215,28 +224,65 @@
 
                 // Reattach mod remove buttons
                 const selectedMods = build.querySelector('.selected-mods-container');
-                build.querySelectorAll('.mod-item:not(.buff-item)').forEach(item => {
-                    const removeBtn = item.querySelector('.remove-mod-btn');
-                    if (removeBtn) {
-                        const newBtn = removeBtn.cloneNode(true);
-                        removeBtn.parentNode.replaceChild(newBtn, removeBtn);
-                        newBtn.addEventListener('click', function() {
-                            selectedMods.removeChild(item);
-                        });
-                    }
+                build.querySelectorAll('.mod-item:not(.buff-item):not(.riven-item)').forEach(item => {
+                    reattachRemoveButton(item, '.remove-mod-btn', () => {
+                        selectedMods.removeChild(item);
+                    });
+                });
+
+                // Reattach riven event listeners (remove button + stat search dropdowns)
+                build.querySelectorAll('.riven-item').forEach(rivenItem => {
+                    reattachRemoveButton(rivenItem, '.remove-mod-btn', () => {
+                        selectedMods.removeChild(rivenItem);
+                    });
+
+                    // Reattach searchable stat selector listeners
+                    rivenItem.querySelectorAll('.riven-stat-search-input').forEach(searchInput => {
+                        const index = searchInput.dataset.statIndex;
+                        const statRow = rivenItem.querySelector(`.riven-stat-row[data-stat-index="${index}"]`);
+                        const searchResults = statRow.querySelector('.riven-stat-search-results');
+                        const valueInput = rivenItem.querySelector(`.riven-stat-value[data-stat-index="${index}"]`);
+
+                        // Initialize selected stat tracking if not already set
+                        if (!searchInput.dataset.selectedStat) {
+                            searchInput.dataset.selectedStat = '';
+                        }
+
+                        // Setup searchable dropdown with riven-specific behavior
+                        setupSearchableDropdown(
+                            searchInput,
+                            searchResults,
+                            (buff, input) => {
+                                input.value = buff.name.replace(/_/g, ' ');
+                                input.dataset.selectedStat = buff.name;
+                                valueInput.disabled = false;
+                                if (!valueInput.value) {
+                                    valueInput.value = 0;
+                                }
+                                valueInput.focus();
+                            },
+                            {
+                                clearOnSelect: false,
+                                noResultsMessage: 'No stats found',
+                                formatDisplay: (buff) => buff.name.replace(/_/g, ' '),
+                                onInputChange: (input, query) => {
+                                    if (input.dataset.selectedStat && input.value !== input.dataset.selectedStat.replace(/_/g, ' ')) {
+                                        input.dataset.selectedStat = '';
+                                        valueInput.disabled = true;
+                                        valueInput.value = '';
+                                    }
+                                }
+                            }
+                        );
+                    });
                 });
 
                 // Reattach buff remove buttons
                 const selectedBuffs = build.querySelector('.selected-buffs-container');
                 build.querySelectorAll('.buff-item').forEach(item => {
-                    const removeBtn = item.querySelector('.remove-buff-btn');
-                    if (removeBtn) {
-                        const newBtn = removeBtn.cloneNode(true);
-                        removeBtn.parentNode.replaceChild(newBtn, removeBtn);
-                        newBtn.addEventListener('click', function() {
-                            selectedBuffs.removeChild(item);
-                        });
-                    }
+                    reattachRemoveButton(item, '.remove-buff-btn', () => {
+                        selectedBuffs.removeChild(item);
+                    });
                 });
             }
 
@@ -485,54 +531,10 @@
                 rivenHTML += '</div>';
                 rivenItem.innerHTML = rivenHTML;
 
-                // Attach event listeners
-                rivenItem.querySelector('.remove-mod-btn').addEventListener('click', function() {
-                    selectedMods.removeChild(rivenItem);
-                });
-
-                // Attach searchable stat selector listeners
-                rivenItem.querySelectorAll('.riven-stat-search-input').forEach(searchInput => {
-                    const index = searchInput.dataset.statIndex;
-                    const statRow = rivenItem.querySelector(`.riven-stat-row[data-stat-index="${index}"]`);
-                    const searchResults = statRow.querySelector('.riven-stat-search-results');
-                    const valueInput = rivenItem.querySelector(`.riven-stat-value[data-stat-index="${index}"]`);
-
-                    // Initialize selected stat tracking
-                    searchInput.dataset.selectedStat = '';
-
-                    // Setup searchable dropdown with riven-specific behavior
-                    setupSearchableDropdown(
-                        searchInput,
-                        searchResults,
-                        (buff, input) => {
-                            // Set selected stat and update input
-                            input.value = buff.name.replace(/_/g, ' ');
-                            input.dataset.selectedStat = buff.name;
-
-                            // Enable value input
-                            valueInput.disabled = false;
-                            if (!valueInput.value) {
-                                valueInput.value = 0;
-                            }
-                            valueInput.focus();
-                        },
-                        {
-                            clearOnSelect: false, // Keep the selected stat visible
-                            noResultsMessage: 'No stats found',
-                            formatDisplay: (buff) => buff.name.replace(/_/g, ' '),
-                            onInputChange: (input, query) => {
-                                // Clear selection if user modifies the text after selecting
-                                if (input.dataset.selectedStat && input.value !== input.dataset.selectedStat.replace(/_/g, ' ')) {
-                                    input.dataset.selectedStat = '';
-                                    valueInput.disabled = true;
-                                    valueInput.value = '';
-                                }
-                            }
-                        }
-                    );
-                });
-
                 selectedMods.appendChild(rivenItem);
+
+                // Setup event listeners for all rivens in this build (including the newly added one)
+                setupBuildEventListeners(build);
             }
 
             function addBuild() {
