@@ -64,6 +64,17 @@ h1 {
     font-size: 16px;
     font-weight: 700;
     color: var(--accent-color);
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    padding: 4px 8px;
+    flex: 1;
+    max-width: 200px;
+}
+
+.build-title:focus {
+    outline: none;
+    border-color: var(--accent-color);
 }
 
 .remove-build-btn {

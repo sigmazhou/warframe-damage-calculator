@@ -295,6 +295,9 @@
                             // Populate all faction selects (for all builds)
                             const factionSelects = document.querySelectorAll('.enemy-faction-select');
                             factionSelects.forEach(factionSelect => {
+                                // Save current value before repopulating
+                                const currentValue = factionSelect.value;
+
                                 factionSelect.innerHTML = '';
                                 data.enemy_factions.forEach(faction => {
                                     const option = document.createElement('option');
@@ -302,6 +305,11 @@
                                     option.textContent = faction.charAt(0).toUpperCase() + faction.slice(1);
                                     factionSelect.appendChild(option);
                                 });
+
+                                // Restore previous value if it exists in the new options
+                                if (currentValue) {
+                                    factionSelect.value = currentValue;
+                                }
                             });
                         }
                     })
@@ -315,6 +323,9 @@
                             // Populate all type selects (for all builds)
                             const typeSelects = document.querySelectorAll('.enemy-type-select');
                             typeSelects.forEach(typeSelect => {
+                                // Save current value before repopulating
+                                const currentValue = typeSelect.value;
+
                                 typeSelect.innerHTML = '';
                                 data.enemy_types.forEach(type => {
                                     const option = document.createElement('option');
@@ -322,6 +333,11 @@
                                     option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
                                     typeSelect.appendChild(option);
                                 });
+
+                                // Restore previous value if it exists in the new options
+                                if (currentValue) {
+                                    typeSelect.value = currentValue;
+                                }
                             });
                         }
                     })
@@ -542,9 +558,18 @@
                 const container = document.getElementById('builds-container');
                 const lastBuild = container.querySelector('.build:last-child');
 
+                // TODO: handle selected values in a better way
+                // Save enemy data from last build (cloneNode doesn't preserve select values)
+                const enemyFaction = lastBuild.querySelector('.enemy-faction-select').value;
+                const enemyType = lastBuild.querySelector('.enemy-type-select').value;
+
                 // Clone the last build
                 const newBuild = lastBuild.cloneNode(true);
                 newBuild.setAttribute('data-build-id', buildIdCounter);
+
+                // Restore enemy data to the new build only
+                newBuild.querySelector('.enemy-faction-select').value = enemyFaction;
+                newBuild.querySelector('.enemy-type-select').value = enemyType;
 
                 // Preserve riven counter for cloned rivens
                 // Scan cloned rivens to find max ID and set counter accordingly
@@ -562,8 +587,8 @@
                 newBuild.dataset.rivenCounter = maxRivenId.toString();
 
                 // Update build title
-                const titleDiv = newBuild.querySelector('.build-title');
-                titleDiv.textContent = `Build ${buildIdCounter}`;
+                const titleInput = newBuild.querySelector('.build-title');
+                titleInput.value = `Build ${buildIdCounter}`;
 
                 // Attach remove button listener
                 const removeBtn = newBuild.querySelector('.remove-build-btn');
@@ -619,7 +644,7 @@
                 // Process each build
                 builds.forEach((build, index) => {
                     const buildId = build.getAttribute('data-build-id');
-                    const buildName = build.querySelector('.build-title').textContent || `Build ${buildId}`;
+                    const buildName = build.querySelector('.build-title').value || `Build ${buildId}`;
 
                     // Collect weapon elements from the dynamic list and convert from percentage
                     const elements = {};
