@@ -254,7 +254,7 @@ curl http://localhost:5000/api/ingame-buffs
       "attack_speed": 0.6,
       "status_chance": 0.0,
       "elements": {},
-      "prejudice": {}
+      "faction": {}
     },
     "in_game": {
       "galvanized_shot": 0,

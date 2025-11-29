@@ -37,7 +37,7 @@ ELEMENT_MAPPING = {
     "tau_damage": "tau",
 }
 
-# Mapping for faction damage (prejudice)
+# Mapping for faction damage (faction)
 FACTION_MAPPING = {
     "damage_vs_grineer": "grineer",
     "damage_vs_corpus": "corpus",
@@ -96,7 +96,7 @@ class ModParser:
         in_game_buff.status_chance = 0
         in_game_buff.status_duration = 0
         in_game_buff.elements = Elements()
-        in_game_buff.prejudice = {}
+        in_game_buff.faction = {}
 
         # Track element order from mods
         element_order_from_mods = []
@@ -160,17 +160,17 @@ class ModParser:
         self, in_game_buff: InGameBuff, faction_name: str, value: float
     ) -> None:
         """
-        Add a faction damage bonus to InGameBuff.prejudice.
+        Add a faction damage bonus to InGameBuff.faction.
 
         Args:
             in_game_buff: InGameBuff to modify
             faction_name: Name of the faction
             value: Value to add
         """
-        if faction_name in in_game_buff.prejudice:
-            in_game_buff.prejudice[faction_name] += value
+        if faction_name in in_game_buff.faction:
+            in_game_buff.faction[faction_name] += value
         else:
-            in_game_buff.prejudice[faction_name] = value
+            in_game_buff.faction[faction_name] = value
 
     def _apply_stats_to_buff(
         self, stats: dict, in_game_buff: InGameBuff, mod_name: str = None
@@ -231,8 +231,8 @@ class ModParser:
                     if self._add_element_to_buff(in_game_buff, elem_key, elem_value):
                         element_order.append(elem_key)
 
-            # Handle nested prejudice dictionary (in-game stats)
-            elif stat_key == "prejudice" and isinstance(value, dict):
+            # Handle nested faction dictionary (in-game stats)
+            elif stat_key == "faction" and isinstance(value, dict):
                 for faction_key, faction_value in value.items():
                     self._add_faction_to_buff(in_game_buff, faction_key, faction_value)
 
@@ -301,7 +301,7 @@ if __name__ == "__main__":
     print(f"  critical_damage: {in_game_buff.critical_damage}")
     print(f"  status_chance: {in_game_buff.status_chance}")
     print(f"  elements: {in_game_buff.elements.to_dict()}")
-    print(f"  prejudice: {in_game_buff.prejudice}")
+    print(f"  faction: {in_game_buff.faction}")
     print(f"  galvanized_shot: {in_game_buff.galvanized_shot}")
     print(f"  galvanized_aptitude: {in_game_buff.galvanized_aptitude}")
     print(f"  final_additive_cd: {in_game_buff.final_additive_cd}")

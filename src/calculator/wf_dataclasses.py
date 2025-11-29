@@ -275,7 +275,7 @@ class _GeneralStat(_SupportsMath):
     status_chance: float = 0
     status_duration: float = 0
     elements: Elements = field(default_factory=Elements)
-    prejudice: dict[str, float] = field(default_factory=dict)
+    faction: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass

@@ -29,9 +29,6 @@ class DotInstance:
     remaining_duration: float
     tick_rate: float = 1.0  # Ticks per second
     total_duration: float = 6.0  # Default 6 seconds
-    # Store crit stats for rolling crits per tick
-    crit_chance: float = 0.0
-    crit_damage: float = 1.0
 
     def tick(self, delta_time: float) -> float:
         """
@@ -48,12 +45,7 @@ class DotInstance:
 
         self.remaining_duration -= delta_time
 
-        tick_damage = self.damage_per_tick
-        if random.random() < self.crit_chance:
-            # Critical hit!
-            tick_damage = self.damage_per_tick * self.crit_damage
-
-        return tick_damage * delta_time * self.tick_rate
+        return self.damage_per_tick * delta_time * self.tick_rate
 
     def is_active(self) -> bool:
         """Check if this DOT instance is still active."""
@@ -165,11 +157,17 @@ class DotConfig:
 
         Args:
             base_damage: Base damage for this DOT
+            crit_chance: Critical chance for this DOT
+            crit_damage: Critical damage for this DOT
 
         Returns:
             Configured DOT instance
         """
         damage_per_tick = base_damage * self.damage_multiplier
+
+        if random.random() < crit_chance:
+            # Critical hit!
+            damage_per_tick *= crit_damage
 
         instance = DotInstance(
             dot_type=self.dot_type,
@@ -177,8 +175,6 @@ class DotConfig:
             remaining_duration=self.base_duration,
             tick_rate=self.tick_rate,
             total_duration=self.base_duration,
-            crit_chance=crit_chance,
-            crit_damage=crit_damage,
         )
 
         # Apply callbacks to modify the instance

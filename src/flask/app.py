@@ -33,7 +33,7 @@ parser = ModParser()
 # Helper functions for flattening/unflattening buff fields
 def flatten_buff_fields(buff_fields):
     """
-    Flatten InGameBuff fields by expanding prejudice and elements into individual fields.
+    Flatten InGameBuff fields by expanding faction and elements into individual fields.
 
     Args:
         buff_fields: List of field dictionaries from InGameBuff dataclass
@@ -44,12 +44,12 @@ def flatten_buff_fields(buff_fields):
     flattened = []
 
     for field in buff_fields:
-        if field['name'] == 'prejudice':
+        if field['name'] == 'faction':
             # Get faction names from EnemyFaction enum (exclude NONE)
             factions = [faction.value for faction in EnemyFaction if faction != EnemyFaction.NONE]
             for faction in factions:
                 flattened.append({
-                    'name': f'prejudice_{faction}',
+                    'name': f'faction_{faction}',
                     'type': 'float',
                     'default': 0.0
                 })
@@ -71,23 +71,23 @@ def flatten_buff_fields(buff_fields):
 
 def unflatten_buff_data(buff_data):
     """
-    Unflatten buff data by reconstructing prejudice dict and elements dict.
+    Unflatten buff data by reconstructing faction dict and elements dict.
 
     Args:
-        buff_data: Dictionary with flattened keys (e.g., prejudice_grineer, element_heat)
+        buff_data: Dictionary with flattened keys (e.g., faction_grineer, element_heat)
 
     Returns:
-        Dictionary with nested prejudice and elements structures
+        Dictionary with nested faction and elements structures
     """
     processed = {}
-    prejudice_dict = {}
+    faction_dict = {}
     elements_dict = {}
 
     for key, value in buff_data.items():
-        if key.startswith('prejudice_'):
-            # Extract faction name (e.g., prejudice_grineer -> grineer)
-            faction = key[len('prejudice_'):]
-            prejudice_dict[faction] = value
+        if key.startswith('faction_'):
+            # Extract faction name (e.g., faction_grineer -> grineer)
+            faction = key[len('faction_'):]
+            faction_dict[faction] = value
         elif key.startswith('element_'):
             # Extract element name (e.g., element_heat -> heat)
             element = key[len('element_'):]
@@ -97,8 +97,8 @@ def unflatten_buff_data(buff_data):
             processed[key] = value
 
     # Add reconstructed nested structures if they have values
-    if prejudice_dict:
-        processed['prejudice'] = prejudice_dict
+    if faction_dict:
+        processed['faction'] = faction_dict
     if elements_dict:
         processed['elements'] = elements_dict
 
@@ -236,7 +236,7 @@ def get_enemy_types():
 def get_ingame_buffs():
     """
     Get list of available in-game buff fields from InGameBuff dataclass.
-    Returns flattened fields with prejudice_* and element_* expanded.
+    Returns flattened fields with faction_* and element_* expanded.
 
     Returns:
         JSON object with buff field names and their types
@@ -259,7 +259,7 @@ def get_ingame_buffs():
                 'default': default_value
             })
 
-        # Flatten the fields (expand prejudice and elements)
+        # Flatten the fields (expand faction and elements)
         flattened_fields = flatten_buff_fields(buff_fields)
 
         return jsonify({
@@ -364,7 +364,7 @@ def calculate_damage():
         in_game_buffs_data = data.get('in_game_buffs', {})
         logger.info(f"In-game buffs (raw): {in_game_buffs_data}")
 
-        # Unflatten buff data (reconstruct prejudice and elements)
+        # Unflatten buff data (reconstruct faction and elements)
         processed_buffs = unflatten_buff_data(in_game_buffs_data)
         logger.info(f"In-game buffs (processed): {processed_buffs}")
 

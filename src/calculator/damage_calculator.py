@@ -98,7 +98,7 @@ class DamageCalculator:
             self.weapon_stat.damage
             * self._get_base()
             * self._get_crit()
-            * self._get_prejudice()
+            * self._get_faction()
             * self.in_game_buff.final_multiplier
         )
         return per_shot
@@ -150,7 +150,7 @@ class DamageCalculator:
 
         # Uncombined element for (1+mod+buff)
         elem_mod_and_buff = self.final_buff.elements.get_element(element) + 1
-        muls += [elem_mod_and_buff, self._get_prejudice()]
+        muls += [elem_mod_and_buff, self._get_faction()]
 
         layers_per_sec = self._get_sc(element) * self._get_as() * self._get_ms()
         muls += [layers_per_sec]
@@ -227,17 +227,17 @@ class DamageCalculator:
 
         return cc * (cd - 1) + 1
 
-    def _get_prejudice(self) -> float:
+    def _get_faction(self) -> float:
         """
-        Calculate faction damage multiplier from prejudice mods.
+        Calculate faction damage multiplier from faction mods.
 
         Returns:
-            Prejudice damage multiplier
+            faction damage multiplier
         """
-        total_prejudice = self.final_buff.prejudice.get(
+        total_faction = self.final_buff.faction.get(
             self.enemy_stat.faction.value, 0
         )
-        return 1 + total_prejudice
+        return 1 + total_faction
 
     def _get_ms(self) -> float:
         """
@@ -310,7 +310,7 @@ class DamageCalculator:
         # Calculate base damage for this DOT
         base_damage = self.weapon_stat.damage * self._get_base()
         element_multiplier = getattr(self.combined_elements, element, 0)
-        proc_damage = base_damage * element_multiplier * self._get_prejudice() * self.in_game_buff.final_multiplier
+        proc_damage = base_damage * element_multiplier * self._get_faction() * self.in_game_buff.final_multiplier
 
         # Get crit stats for per-tick rolling
         crit_chance = self._get_cc()
@@ -407,7 +407,7 @@ class DamageCalculator:
         shots_fired = 0
         while time_elapsed < duration:
             # Fire weapon
-            if shot_timer <= 0:
+            while shot_timer <= 0 and time_elapsed < duration:
                 direct_damage = self.calc_single_hit()
                 total_direct_damage += direct_damage
                 shots_fired += 1
@@ -426,7 +426,7 @@ class DamageCalculator:
                         if element in self.dot_configs:
                             self.apply_status_proc(element)
 
-                shot_timer = time_between_shots
+                shot_timer += time_between_shots
 
             # Tick DOTs
             dot_damages = self.dot_state.tick_all(time_step)
@@ -587,7 +587,7 @@ if __name__ == "__main__":
     mods.critical_damage = 1.1 + 2.4
     mods.status_chance = 0.8
     mods.elements = Elements(corrosive=0, radiation=3.3, toxin=1)
-    mods.prejudice = {}
+    mods.faction = {}
 
     # final_multiplier = 1  # +0.9
 
@@ -626,7 +626,7 @@ if __name__ == "__main__":
     mods.critical_damage = 1.468+2.4
     mods.attack_speed = 0+0.6
     mods.multishot = 1.1+0.6
-    mods.prejudice = {"faction": 0.55}
+    mods.faction = {"faction": 0.55}
 
     # in-game buffs
     buffs.num_debuffs = 5
