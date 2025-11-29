@@ -1,0 +1,5 @@
+Things i'm working on, if you want to do any of these, let me know to avoid duplicate work
+
+1. implement riven
+2. implement faction element vulnerability
+3. add more common mods
