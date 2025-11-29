@@ -3,8 +3,10 @@ import random
 from collections.abc import Callable
 from dataclasses import dataclass, field, fields
 from enum import StrEnum, auto, Enum
-from typing import Any, TypeVar, Generic
+from typing import Any, TypeVar, List, Optional
 import copy
+
+from src.data.debuff_callbacks import Debuff, DebuffRefreshType
 
 Self = TypeVar("Self", bound="_SupportsMath")
 
@@ -515,7 +517,6 @@ class DotConfig:
 
         return instance
 
-
 @dataclass
 class EnemyStat:
     faction: EnemyFaction = field(default=EnemyFaction.NONE)
@@ -524,6 +525,7 @@ class EnemyStat:
     base_armor: float = 0.0
     current_armor: float = 0.0
 
+    active_debuffs: list['Debuff'] = field(default_factory=list)
     dot_state: DotState = field(default_factory=DotState)
 
     def __post_init__(self) -> None:
@@ -549,10 +551,33 @@ class EnemyStat:
         Calculate damage reduction from armor.
 
         Returns:
-            Damage multiplier (1.0 = no reduction, 0.5 = 50% reduction)
+            Damage multiplier (0 = no reduction, 0.5 = 50% reduction)
         """
         if self.current_armor <= 0:
-            return 1.0
+            return 0.0
 
         # ref: https://wiki.warframe.com/w/Armor
         return 0.9 * math.sqrt(self.current_armor / 2700.0)
+
+    def add_debuff(self, debuff: 'Debuff', current_time: float) -> None:
+        """Add a debuff to the enemy"""
+        # Check if debuff of same type already exists
+        existing = self.get_debuff_by_type(debuff.debuff_type)
+        if existing:
+            # TODO: Implement stack
+            if debuff.debuff_refresh_type == DebuffRefreshType.REFRESH:
+                existing.refresh(current_time)
+        else:
+            self.active_debuffs.append(debuff)
+
+    def remove_debuff(self, debuff: 'Debuff'):
+        """Remove a debuff from the enemy"""
+        if debuff in self.active_debuffs:
+            self.active_debuffs.remove(debuff)
+
+    def get_debuff_by_type(self, debuff_type: str) -> Optional['Debuff']:
+        """Get first debuff of specified type"""
+        for debuff in self.active_debuffs:
+            if debuff.debuff_type == debuff_type:
+                return debuff
+        return None
