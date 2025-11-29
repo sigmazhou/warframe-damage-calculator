@@ -17,4 +17,3 @@ Open `http://localhost:5001` in your browser to use the calculator.
 ## Documentation
 
 - [API Documentation](docs/API_DOCS.md)
-- [Damage Calculation Details](docs/DAMAGE_CALCULATION_AND_SIMULATION.md)
