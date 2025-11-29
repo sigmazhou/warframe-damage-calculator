@@ -302,7 +302,7 @@ class DamageCalculator:
             procs = self._roll_status_procs()
             for proc in procs:
                 proc_counts[proc] += 1
-                self.apply_status_proc(proc)
+                self.apply_status_proc(proc, base_damage)
             total_base_damage += base_damage
 
         # apply elements to total base damage
