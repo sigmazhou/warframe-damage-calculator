@@ -2,7 +2,6 @@ import random
 from dataclasses import fields
 from functools import reduce
 
-from src.calculator.dot_dataclasses import DotConfig, DotType, DotBehavior, DotState
 from src.calculator.wf_dataclasses import (
     WeaponStat,
     StaticBuff,
@@ -10,7 +9,7 @@ from src.calculator.wf_dataclasses import (
     EnemyStat,
     EnemyFaction,
     EnemyType,
-    Elements,
+    Elements, DotState, DotConfig, DotType, DotBehavior,
 )
 from src.data.mod_callbacks import CallbackType
 
@@ -60,7 +59,7 @@ class DamageCalculator:
             self.combined_elements.combine_elements(self.element_order)
 
         # Initialize DOT system
-        self.dot_state = DotState()
+        self.dot_state = enemy_stat.dot_state
         self.dot_configs = self._initialize_dot_configs()
 
     def calc_elem(self) -> float:

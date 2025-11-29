@@ -1,6 +1,8 @@
+import math
+import random
 from collections.abc import Callable
 from dataclasses import dataclass, field, fields
-from enum import StrEnum, auto
+from enum import StrEnum, auto, Enum
 from typing import Any, TypeVar, Generic
 import copy
 
@@ -318,19 +320,6 @@ class EnemyType(StrEnum):
     NONE = auto()
     TRIDOLON = auto()
 
-
-@dataclass
-class EnemyStat:
-    faction: EnemyFaction = field(default=EnemyFaction.NONE)
-    type: EnemyType = field(default=EnemyType.NONE)
-    elements_vulnerability: Elements | None = None
-
-    def __post_init__(self) -> None:
-        if self.elements_vulnerability is None:
-            self.elements_vulnerability = Elements()
-            self.elements_vulnerability.set_all(1.0)
-
-
 @dataclass
 class InGameBuff(_GeneralStat):
     """In-game buffs and combat state modifiers."""
@@ -345,3 +334,223 @@ class InGameBuff(_GeneralStat):
     final_multiplier: float = 1.0
     # special mod effects such as galvanized and blood rush
     callbacks: list[Callable[[Any], None]] = field(default_factory=list)
+
+class DotType(Enum):
+    """Types of DOT effects in Warframe."""
+    HEAT = "heat"
+    TOXIN = "toxin"
+    SLASH = "slash"
+    ELECTRICITY = "electricity"
+    GAS = "gas"
+    BLEED = "bleed"
+
+
+class DotBehavior(Enum):
+    """DOT stacking and refresh behaviors."""
+    REFRESH_ALL = "refresh_all"  # Heat: refreshes all existing stacks
+    INDEPENDENT = "independent"  # Toxin: independent timers per stack
+    SNAPSHOT = "snapshot"  # Slash: snapshot on application
+
+
+@dataclass
+class DotInstance:
+    """Represents a single DOT stack instance."""
+    dot_type: DotType
+    damage_per_tick: float
+    remaining_duration: float
+    tick_rate: float = 1.0  # Ticks per second
+    total_duration: float = 6.0  # Default 6 seconds
+
+    def tick(self, delta_time: float) -> float:
+        """
+        Process one tick of DOT damage.
+
+        Args:
+            delta_time: Time elapsed since last tick
+
+        Returns:
+            Damage dealt this tick
+        """
+        if self.remaining_duration <= 0:
+            return 0.0
+
+        self.remaining_duration -= delta_time
+
+        return self.damage_per_tick * delta_time * self.tick_rate
+
+    def is_active(self) -> bool:
+        """Check if this DOT instance is still active."""
+        return self.remaining_duration > 0
+
+
+@dataclass
+class DotState:
+    """Manages all active DOT effects on a target."""
+    active_dots: dict[DotType, list[DotInstance]] = field(default_factory=dict)
+
+    def add_dot(self, dot_instance: DotInstance, behavior: DotBehavior):
+        """
+        Add a new DOT instance with specific behavior.
+
+        Args:
+            dot_instance: The DOT to add
+            behavior: How this DOT should stack/refresh
+        """
+        dot_type = dot_instance.dot_type
+
+        if dot_type not in self.active_dots:
+            self.active_dots[dot_type] = []
+
+        if behavior == DotBehavior.REFRESH_ALL:
+            # Heat behavior: refresh all existing stacks
+            for existing_dot in self.active_dots[dot_type]:
+                existing_dot.remaining_duration = dot_instance.total_duration
+            self.active_dots[dot_type].append(dot_instance)
+
+        elif behavior == DotBehavior.INDEPENDENT:
+            # Toxin behavior: independent timers
+            self.active_dots[dot_type].append(dot_instance)
+
+        elif behavior == DotBehavior.SNAPSHOT:
+            # Slash behavior: snapshot damage on application
+            self.active_dots[dot_type].append(dot_instance)
+
+    def tick_all(self, delta_time: float) -> dict[DotType, float]:
+        """
+        Process all active DOTs for one tick.
+
+        Args:
+            delta_time: Time elapsed since last tick
+
+        Returns:
+            Dictionary of damage dealt by each DOT type
+        """
+        damage_dealt = {}
+
+        for dot_type, instances in list(self.active_dots.items()):
+            total_damage = 0.0
+
+            # Tick all instances and remove expired ones
+            active_instances = []
+            for instance in instances:
+                damage = instance.tick(delta_time)
+                total_damage += damage
+
+                if instance.is_active():
+                    active_instances.append(instance)
+
+            # Update or remove the dot type
+            if active_instances:
+                self.active_dots[dot_type] = active_instances
+                damage_dealt[dot_type] = total_damage
+            else:
+                del self.active_dots[dot_type]
+
+        return damage_dealt
+
+    def get_active_stacks(self, dot_type: DotType) -> int:
+        """Get number of active stacks for a DOT type."""
+        return len(self.active_dots.get(dot_type, []))
+
+    def clear_all(self):
+        """Remove all active DOTs."""
+        self.active_dots.clear()
+
+
+@dataclass
+class DotCallback:
+    """
+    Callback for DOT-specific behavior modifications.
+    Similar to mod callbacks but for DOT mechanics.
+    """
+    func: Callable[[DotInstance, Any], DotInstance]
+    dot_type: DotType
+    description: str = ""
+
+    def __call__(self, dot_instance: DotInstance, *args: Any, **kwargs: Any) -> DotInstance:
+        """Execute the callback."""
+        return self.func(dot_instance, *args, **kwargs)
+
+
+@dataclass
+class DotConfig:
+    """Configuration for a specific DOT type."""
+    dot_type: DotType
+    behavior: DotBehavior
+    base_duration: float = 6.0
+    tick_rate: float = 1.0
+    damage_multiplier: float = 1.0
+    callbacks: list[DotCallback] = field(default_factory=list)
+
+    def create_instance(self, base_damage: float, crit_chance: float = 0.0, crit_damage: float = 1.0) -> DotInstance:
+        """
+        Create a DOT instance from this configuration.
+
+        Args:
+            base_damage: Base damage for this DOT
+            crit_chance: Critical chance for this DOT
+            crit_damage: Critical damage for this DOT
+
+        Returns:
+            Configured DOT instance
+        """
+        damage_per_tick = base_damage * self.damage_multiplier
+
+        if random.random() < crit_chance:
+            # Critical hit!
+            damage_per_tick *= crit_damage
+
+        instance = DotInstance(
+            dot_type=self.dot_type,
+            damage_per_tick=damage_per_tick,
+            remaining_duration=self.base_duration,
+            tick_rate=self.tick_rate,
+            total_duration=self.base_duration,
+        )
+
+        # Apply callbacks to modify the instance
+        for callback in self.callbacks:
+            instance = callback(instance)
+
+        return instance
+
+@dataclass
+class EnemyStat:
+    faction: EnemyFaction = field(default=EnemyFaction.NONE)
+    type: EnemyType = field(default=EnemyType.NONE)
+    elements_vulnerability: Elements | None = None
+    base_armor: float = 0.0
+    current_armor: float = 0.0
+
+    dot_state: DotState = field(default_factory=DotState)
+
+    def __post_init__(self) -> None:
+        if self.elements_vulnerability is None:
+            self.elements_vulnerability = Elements()
+            self.elements_vulnerability.set_all(1.0)
+
+        # Armor capped at 2700 with 90% reduction
+        self.base_armor = min(self.base_armor, 2700)
+        self.current_armor = self.base_armor
+
+    def apply_armor_strip(self, amount: float):
+        """
+        Strip armor from the enemy.
+
+        Args:
+            amount: Amount of armor to remove
+        """
+        self.current_armor = max(0.0, self.current_armor - amount)
+
+    def get_armor_damage_reduction(self) -> float:
+        """
+        Calculate damage reduction from armor.
+
+        Returns:
+            Damage multiplier (1.0 = no reduction, 0.5 = 50% reduction)
+        """
+        if self.current_armor <= 0:
+            return 1.0
+
+        # ref: https://wiki.warframe.com/w/Armor
+        return 0.9 * math.sqrt(self.current_armor / 2700.0)

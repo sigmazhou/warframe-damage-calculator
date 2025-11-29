@@ -12,7 +12,7 @@ from src.calculator.wf_dataclasses import (
     EnemyStat,
     EnemyFaction,
     EnemyType,
-    Elements,
+    Elements, DotState,
 )
 
 # Configure logging
@@ -383,6 +383,7 @@ def calculate_damage():
         # Parse enemy
         enemy_data = data.get('enemy', {})
         enemy = EnemyStat()
+        enemy.dot_state = DotState()
 
         # Parse faction
         faction_str = enemy_data.get('faction', 'none')
