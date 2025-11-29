@@ -268,7 +268,9 @@ class ModParser:
         if mod_name and mod_name in CALLBACK_MAPPING:
             in_game_buff.callbacks.append(CALLBACK_MAPPING[mod_name])
 
-        return element_order.reverse()  # riven buff applies in reverse order
+        # Reverse element order for riven buffs (list.reverse() returns None, so reverse in-place then return)
+        element_order.reverse()
+        return element_order
 
     def get_available_mods(self) -> list[str]:
         """Get list of all available mod names."""
