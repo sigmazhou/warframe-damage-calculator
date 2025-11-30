@@ -1,25 +1,22 @@
+import pdb
+import traceback
 from collections import defaultdict
 import random
 from dataclasses import fields
 from functools import reduce
 
 from src.calculator.dot_config import DOT_CONFIG_MAP
+from src.calculator.dot_dataclasses import DotType
 from src.calculator.wf_dataclasses import (
     WeaponStat,
     StaticBuff,
     InGameBuff,
     EnemyStat,
-    EnemyFaction,
     EnemyType,
     Elements,
-    DotState,
-    DotConfig,
-    DotType,
-    DotBehavior,
+    DotState, DebuffManager, create_heat_armor_strip_debuff,
 )
 from src.data.mod_callbacks import CallbackType
-
-SIM_V2 = True
 
 
 class DamageCalculator:
@@ -67,6 +64,31 @@ class DamageCalculator:
         if self.element_order:
             # Apply element combination directly to final_buff.elements
             self.combined_elements.combine_elements(self.element_order)
+
+        self.debuff_manager = DebuffManager()
+
+    def update_debuffs(self, current_time: float):
+        """
+        Update all active debuffs on the enemy.
+
+        Args:
+            current_time: Current time in seconds
+        """
+        self.debuff_manager.update_debuffs(self.enemy_stat, current_time)
+
+    def ensure_heat_armor_strip_debuff(self, current_time: float):
+        """
+        Ensure heat armor strip debuff exists if there are heat DOTs.
+        Call this after heat DOTs are added to active_dots.
+
+        Args:
+            current_time: Current time in seconds
+        """
+        # Only add if we have heat DOTs and don't already have the debuff
+        if len(self.enemy_stat.dot_state.active_dots.get(DotType.HEAT, [])) > 0:
+            debuff = create_heat_armor_strip_debuff()
+            debuff.last_tick_time = current_time
+            self.enemy_stat.add_debuff(debuff, current_time)
 
     def calc_elem(self) -> float:
         """
@@ -270,7 +292,7 @@ class DamageCalculator:
         ms = int(self._get_ms()) + (1 if random.random() < (self._get_ms() % 1) else 0)
         return ms
 
-    def _simulate_single_hit(self, random_seed: int | None = None) -> float:
+    def _simulate_single_hit(self, current_time:float, random_seed: int | None = None) -> float:
         """
         Simulate a single hit. Applies debuffs and returns total direct damage.
         """
@@ -283,6 +305,7 @@ class DamageCalculator:
             * self._get_base()
             * self._get_faction()
             * self.in_game_buff.final_multiplier
+            * (1 - self.enemy_stat.get_armor_damage_reduction())
         )
         total_base_damage = 0.0
         # don't consider elements here
@@ -292,7 +315,7 @@ class DamageCalculator:
             procs = self._roll_status_procs()
             for proc in procs:
                 proc_counts[proc] += 1
-                self.apply_status_proc(proc, base_damage)
+                self.apply_status_proc(proc, current_time, base_damage)
             total_base_damage += base_damage
 
         # apply elements to total base damage
@@ -301,13 +324,14 @@ class DamageCalculator:
         )
         return total_base_damage, proc_counts
 
-    def apply_status_proc(self, element: str, base_damage: float | None = None):
+    def apply_status_proc(self, element: str, current_time: float, base_damage: float | None = None):
         """
         Apply a status proc and create DOT instance.
         Currently only supports dots, will support other status effects in the future.
 
         Args:
             element: Element type that procced
+            current_time: Current time
         """
         if element not in DOT_CONFIG_MAP:
             return
@@ -327,13 +351,10 @@ class DamageCalculator:
         proc_damage = base_damage * element_multiplier * self._get_faction()
 
         # Create DOT instance
-        if SIM_V2:
-            dot_instance = config.create_instance(proc_damage)
-        else:
-            dot_instance = config.create_instance(
-                base_damage, self._get_cc(), self._get_cd()
-            )
+        dot_instance = config.create_instance(proc_damage)
+        print(f"Applying dot instance for {element} at {current_time}")
         self.enemy_stat.dot_state.add_dot(dot_instance, config.behavior)
+        self.ensure_heat_armor_strip_debuff(current_time)
 
     def _roll_status_procs(self, status_chance: float | None = None) -> list[str]:
         """
@@ -383,9 +404,10 @@ class DamageCalculator:
         Reset the simulation state.
         """
         self.enemy_stat.dot_state = DotState()
+        self.enemy_stat.active_debuffs.clear()
 
     def simulate_combat(
-        self, duration: float, time_step: float = 1, verbose: bool = False
+        self, duration: float, time_step: float = 0.1, verbose: bool = False
     ) -> dict:
         """
         Simulate combat over a period of time with actual DOT tracking.
@@ -426,34 +448,18 @@ class DamageCalculator:
 
         shots_fired = 0
         while time_elapsed < duration:
+            # Update debuffs
+
+            self.debuff_manager.update_debuffs(self.enemy_stat, time_elapsed)
             # Fire weapon
             while shot_timer <= 0 and time_elapsed < duration:
                 shots_fired += 1
                 shot_timer += time_between_shots
 
-                if SIM_V2:
-                    direct_damage, proc_counts = self._simulate_single_hit()
-                    total_direct_damage += direct_damage
-                    for proc, count in proc_counts.items():
-                        proc_counts[proc] += count
-                    continue
-
-                direct_damage = self.calc_single_hit()
+                direct_damage, proc_counts = self._simulate_single_hit(time_elapsed)
                 total_direct_damage += direct_damage
-
-                # Determine number of pellets
-                num_pellets = int(multishot)
-                if random.random() < (multishot - num_pellets):
-                    num_pellets += 1
-
-                # Roll procs for each pellet
-                for pellet in range(num_pellets):
-                    procs = self._roll_status_procs(status_chance)
-
-                    for element in procs:
-                        proc_counts[element] = proc_counts.get(element, 0) + 1
-                        if element in DOT_CONFIG_MAP:
-                            self.apply_status_proc(element)
+                for proc, count in proc_counts.items():
+                    proc_counts[proc] += count
 
             # Tick DOTs
             dot_damages = self.enemy_stat.dot_state.tick_all(time_step)
@@ -512,7 +518,7 @@ class DamageCalculator:
         self,
         duration: float,
         num_simulations: int = 10,
-        time_step: float = 1.0,
+        time_step: float = 0.1,
         verbose: bool = False,
     ) -> dict:
         """
@@ -600,8 +606,8 @@ if __name__ == "__main__":
     weapon.multishot = 1
     weapon.critical_chance = 0.31
     weapon.critical_damage = 4.2
-    weapon.status_chance = 0.43
-    weapon.elements = Elements(impact=1)  # Base physical damage
+    weapon.status_chance = 0.05
+    weapon.elements = Elements(heat=1)  # Base physical damage
 
     # pet bonus
     # add_60_atk_speed = 1
@@ -610,12 +616,10 @@ if __name__ == "__main__":
     # mods
     mods = StaticBuff()
     mods.damage = 2.2 + 3.6
-    mods.attack_speed = 0 + 0.6 + 1.5
-    mods.multishot = 0.6 + 1 + 2.1
-    mods.critical_chance = 1.87 + 2.4
+    mods.attack_speed = 1.0
+    mods.critical_chance = 0
     mods.critical_damage = 1.1 + 2.4
-    mods.status_chance = 0.8
-    mods.elements = Elements(corrosive=0, radiation=3.3, toxin=1)
+    mods.status_chance = 0
     mods.faction = {}
 
     # final_multiplier = 1  # +0.9
@@ -633,7 +637,7 @@ if __name__ == "__main__":
     buffs.num_debuffs = 0
 
     enemy = EnemyStat()
-    enemy.type = EnemyType.TRIDOLON
+    enemy.base_armor = 2000
 
     calculator = DamageCalculator(
         weapon_stat=weapon,
@@ -643,6 +647,7 @@ if __name__ == "__main__":
     )
 
     print(f"Dual Toxocyst Direct DPS: {calculator.calc_direct_dps()}")
+    calculator.simulate_combat_multiple(10, 10, 0.5, verbose=True)
 
     """
     furis fire build
