@@ -1,4 +1,5 @@
-from src.calculator.wf_dataclasses import DotConfig, DotType, DotBehavior
+from src.calculator.dot_dataclasses import DotBehavior, DotConfig
+from src.calculator.wf_dataclasses import DotType
 
 
 def initialize_dot_configs() -> dict[str, DotConfig]:
