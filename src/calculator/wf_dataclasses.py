@@ -523,6 +523,8 @@ class HeatArmorStripDebuff(Debuff):
         print(f"Current armor = {enemy_stat.current_armor}")
         self.last_tick_time = current_time
 
+        self.last_recovery_tick = -1.0
+
     def _apply_recovery(self, enemy_stat: 'EnemyStat', current_time: float):
         """Apply armor recovery effect"""
         if self.strip_stage == 0:
