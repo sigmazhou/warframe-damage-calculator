@@ -1,13 +1,16 @@
+import copy
 import math
-import random
+import pdb
+
+from watchpoints import watch
 from collections.abc import Callable
 from dataclasses import dataclass, field, fields
-from enum import StrEnum, auto, Enum
-from typing import Any, TypeVar, Generic
-import copy
+from enum import StrEnum, auto
+from typing import Any, TypeVar, Optional
+
+from src.calculator.dot_dataclasses import DotState, DotType
 
 Self = TypeVar("Self", bound="_SupportsMath")
-
 
 ELEMENT_COMBINATION_MAP = {
     "cold": {"electricity": "magnetic", "heat": "blast", "toxin": "viral"},
@@ -174,6 +177,7 @@ class _SupportsMath:
             # Addition not supported, use self's value
             return copy.copy(self_value)
 
+
 # TODO: kill all hard coded strings
 class Element(StrEnum):
     IMPACT = auto()
@@ -259,7 +263,7 @@ class Elements(_SupportsMath):
         return getattr(self, element)
 
     def combine_elements(
-        self, element_order: list[str], combine_standalone: bool = True
+            self, element_order: list[str], combine_standalone: bool = True
     ) -> None:
         visited = set()
         element_order_clean = []
@@ -346,6 +350,7 @@ class EnemyType(StrEnum):
     NONE = auto()
     TRIDOLON = auto()
 
+
 @dataclass
 class InGameBuff(_GeneralStat):
     """In-game buffs and combat state modifiers."""
@@ -362,160 +367,6 @@ class InGameBuff(_GeneralStat):
     callbacks: list[Callable[[Any], None]] = field(default_factory=list)
 
 
-class DotType(Enum):
-    """Types of DOT effects in Warframe."""
-    HEAT = "heat"
-    TOXIN = "toxin"
-    SLASH = "slash"
-    ELECTRICITY = "electricity"
-    GAS = "gas"
-    BLEED = "bleed"
-
-
-class DotBehavior(Enum):
-    """DOT stacking and refresh behaviors."""
-    REFRESH_ALL = "refresh_all"  # Heat: refreshes all existing stacks
-    INDEPENDENT = "independent"  # Toxin: independent timers per stack
-
-@dataclass
-class DotInstance:
-    """Represents a single DOT stack instance."""
-    dot_type: DotType
-    damage_per_tick: float
-    remaining_duration: float
-    tick_rate: float = 1.0  # Ticks per second
-    total_duration: float = 6.0  # Default 6 seconds
-
-    def tick(self, delta_time: float) -> float:
-        """
-        Process one tick of DOT damage.
-
-        Args:
-            delta_time: Time elapsed since last tick
-
-        Returns:
-            Damage dealt this tick
-        """
-        if self.remaining_duration <= 0:
-            return 0.0
-
-        self.remaining_duration -= delta_time
-
-        return self.damage_per_tick * delta_time * self.tick_rate
-
-    def is_active(self) -> bool:
-        """Check if this DOT instance is still active."""
-        return self.remaining_duration > 0
-
-
-@dataclass
-class DotState:
-    """Manages all active DOT effects on a target."""
-    active_dots: dict[DotType, list[DotInstance]] = field(default_factory=dict)
-
-    def add_dot(self, dot_instance: DotInstance, behavior: DotBehavior):
-        """
-        Add a new DOT instance with specific behavior.
-
-        Args:
-            dot_instance: The DOT to add
-            behavior: How this DOT should stack/refresh
-        """
-        dot_type = dot_instance.dot_type
-
-        if dot_type not in self.active_dots:
-            self.active_dots[dot_type] = []
-
-        if behavior == DotBehavior.REFRESH_ALL:
-            # Heat behavior: refresh all existing stacks
-            for existing_dot in self.active_dots[dot_type]:
-                existing_dot.remaining_duration = dot_instance.total_duration
-            self.active_dots[dot_type].append(dot_instance)
-
-        elif behavior == DotBehavior.INDEPENDENT:
-            # Toxin behavior: independent timers
-            self.active_dots[dot_type].append(dot_instance)
-
-    def tick_all(self, delta_time: float) -> dict[DotType, float]:
-        """
-        Process all active DOTs for one tick.
-
-        Args:
-            delta_time: Time elapsed since last tick
-
-        Returns:
-            Dictionary of damage dealt by each DOT type
-        """
-        damage_dealt = {}
-
-        for dot_type, instances in list(self.active_dots.items()):
-            total_damage = 0.0
-
-            # Tick all instances and remove expired ones
-            active_instances = []
-            for instance in instances:
-                damage = instance.tick(delta_time)
-                total_damage += damage
-
-                if instance.is_active():
-                    active_instances.append(instance)
-
-            # Update or remove the dot type
-            if active_instances:
-                self.active_dots[dot_type] = active_instances
-                damage_dealt[dot_type] = total_damage
-            else:
-                del self.active_dots[dot_type]
-
-        return damage_dealt
-
-    def get_active_stacks(self, dot_type: DotType) -> int:
-        """Get number of active stacks for a DOT type."""
-        return len(self.active_dots.get(dot_type, []))
-
-    def clear_all(self):
-        """Remove all active DOTs."""
-        self.active_dots.clear()
-
-
-@dataclass
-class DotConfig:
-    """Configuration for a specific DOT type."""
-    dot_type: DotType
-    behavior: DotBehavior
-    base_duration: float = 6.0
-    tick_rate: float = 1.0
-    damage_multiplier: float = 1.0
-
-    def create_instance(self, base_damage: float, crit_chance: float = 0.0, crit_damage: float = 1.0) -> DotInstance:
-        """
-        Create a DOT instance from this configuration.
-
-        Args:
-            base_damage: Base damage for this DOT
-            crit_chance: Critical chance for this DOT
-            crit_damage: Critical damage for this DOT
-
-        Returns:
-            Configured DOT instance
-        """
-        damage_per_tick = base_damage * self.damage_multiplier
-
-        if random.random() < crit_chance:
-            # Critical hit!
-            damage_per_tick *= crit_damage
-
-        instance = DotInstance(
-            dot_type=self.dot_type,
-            damage_per_tick=damage_per_tick,
-            remaining_duration=self.base_duration,
-            tick_rate=self.tick_rate,
-            total_duration=self.base_duration,
-        )
-
-        return instance
-
-
 @dataclass
 class EnemyStat:
     faction: EnemyFaction = field(default=EnemyFaction.NONE)
@@ -524,6 +375,7 @@ class EnemyStat:
     base_armor: float = 0.0
     current_armor: float = 0.0
 
+    active_debuffs: list['Debuff'] = field(default_factory=list)
     dot_state: DotState = field(default_factory=DotState)
 
     def __post_init__(self) -> None:
@@ -549,10 +401,179 @@ class EnemyStat:
         Calculate damage reduction from armor.
 
         Returns:
-            Damage multiplier (1.0 = no reduction, 0.5 = 50% reduction)
+            Damage multiplier (0 = no reduction, 0.5 = 50% reduction)
         """
         if self.current_armor <= 0:
-            return 1.0
+            return 0.0
 
         # ref: https://wiki.warframe.com/w/Armor
         return 0.9 * math.sqrt(self.current_armor / 2700.0)
+
+    def add_debuff(self, debuff: 'Debuff', current_time: float) -> None:
+        """Add a debuff to the enemy"""
+        # Check if debuff of same type already exists
+        existing = self.get_debuff_by_type(debuff.debuff_type)
+        if existing:
+            # TODO: Implement stack
+            if debuff.debuff_refresh_type == DebuffRefreshType.REFRESH:
+                existing.refresh(current_time)
+        else:
+            self.active_debuffs.append(debuff)
+
+    def remove_debuff(self, debuff: 'Debuff'):
+        """Remove a debuff from the enemy"""
+        if debuff in self.active_debuffs:
+            self.active_debuffs.remove(debuff)
+
+    def get_debuff_by_type(self, debuff_type: str) -> Optional['Debuff']:
+        """Get first debuff of specified type"""
+        for debuff in self.active_debuffs:
+            if debuff.debuff_type == debuff_type:
+                return debuff
+        return None
+
+class DebuffType(StrEnum):
+    """Types of debuffs that can be applied to enemies"""
+    HEAT_ARMOR_STRIP = auto()
+
+
+class DebuffRefreshType(StrEnum):
+    REFRESH = auto()
+    STACK = auto()
+
+
+@dataclass
+class Debuff:
+    """
+    Base class for debuffs.
+    Each debuff tracks its own state and timing.
+    """
+    debuff_type: DebuffType
+    debuff_refresh_type: DebuffRefreshType
+    tick_interval: float  # How often the debuff ticks
+    last_tick_time: float = 0.0
+    expiration_time: float = 0.0
+    duration: float = 6.0  # TODO: implement status duration
+
+    def should_expire(self, enemy_stat: 'EnemyStat', current_time: float) -> bool:
+        return current_time >= self.expiration_time
+
+    def tick(self, enemy_stat: 'EnemyStat', current_time: float):
+        """
+        Apply the debuff's effect.
+        Override this in subclasses.
+        """
+        pass
+
+    def refresh(self, current_time: float):
+        self.expiration_time = current_time + self.duration
+
+
+@dataclass
+class HeatArmorStripDebuff(Debuff):
+    """
+    Heat debuff that strips armor while heat DOTs are active.
+    Automatically tied to active_dots["heat"] - strips while DOTs exist, recovers when gone.
+
+    Armor Strip: 15%, 30%, 40%, 50% every 0.5s (4 stages total)
+    Armor Recovery: 50%, 40%, 30%, 15%, 0% every 1.5s (5 stages total)
+    """
+    strip_stage = 0
+    last_recovery_tick: float = -1.0
+
+    # Constants
+    STRIP_PERCENTAGES: tuple = field(default=(0.00, 0.15, 0.30, 0.40, 0.50), init=False)
+    STRIP_INTERVAL: float = field(default=0.5, init=False)
+    RECOVERY_INTERVAL: float = field(default=1.5, init=False)
+
+    def __init__(self):
+        super().__init__(
+            debuff_type=DebuffType.HEAT_ARMOR_STRIP,
+            debuff_refresh_type=DebuffRefreshType.REFRESH,
+            tick_interval=0.5,
+        )
+
+    def should_expire(self, enemy_stat: 'EnemyStat', current_time: float) -> bool:
+        """Expire only after full recovery and no heat DOTs"""
+        return enemy_stat.dot_state.active_dots.get(DotType.HEAT, 0) == 0 and self.strip_stage == 0
+
+    def tick(self, enemy_stat: 'EnemyStat', current_time: float):
+        """Apply armor strip or recovery based on heat DOT state"""
+        if len(enemy_stat.dot_state.active_dots.get(DotType.HEAT, [])) > 0:
+            # Heat DOTs active - apply armor strip
+            self._apply_strip(enemy_stat, current_time)
+        else:
+            # No heat DOTs - apply recovery
+            self._apply_recovery(enemy_stat, current_time)
+
+    def _apply_strip(self, enemy_stat: 'EnemyStat', current_time: float):
+        """Apply armor strip effect"""
+
+        if self.strip_stage >= len(self.STRIP_PERCENTAGES) - 1:
+            return
+
+        time_since_last_tick = current_time - self.last_tick_time
+        if time_since_last_tick < self.STRIP_INTERVAL:
+            return
+
+        self.strip_stage += 1
+        strip_percentage = self.STRIP_PERCENTAGES[self.strip_stage]
+        enemy_stat.current_armor = enemy_stat.base_armor * (1.0 - strip_percentage)
+        print(f"Applying heat strip, time = {current_time}, last tick = {self.last_tick_time}, strip stage = {self.strip_stage}")
+        print(f"Current armor = {enemy_stat.current_armor}")
+        self.last_tick_time = current_time
+
+        self.last_recovery_tick = -1.0
+
+    def _apply_recovery(self, enemy_stat: 'EnemyStat', current_time: float):
+        """Apply armor recovery effect"""
+        if self.strip_stage == 0:
+            return
+
+        if self.last_recovery_tick < 0:
+            self.last_recovery_tick = current_time
+            return
+
+        time_since_last_recovery = current_time - self.last_tick_time
+        if time_since_last_recovery < self.RECOVERY_INTERVAL:
+            return
+
+        self.strip_stage -= 1
+        strip_percentage = self.STRIP_PERCENTAGES[self.strip_stage]
+        enemy_stat.current_armor = enemy_stat.base_armor * (1.0 - strip_percentage)
+        print(f"Applying armor recovery, time = {current_time}, last tick = {self.last_tick_time}, strip stage = {self.strip_stage}")
+
+        self.last_tick_time = current_time
+        print(f"Current armor = {enemy_stat.current_armor}")
+
+class DebuffManager:
+    """Manages all debuffs on enemies"""
+
+    @staticmethod
+    def update_debuffs(enemy_stat: 'EnemyStat', current_time: float):
+        """
+        Update all debuffs on an enemy.
+        Apply ticks and handle expirations.
+        """
+        debuffs_to_remove = []
+
+        for debuff in enemy_stat.active_debuffs:
+            # Check expiration first
+            if debuff.should_expire(enemy_stat, current_time):
+                debuffs_to_remove.append(debuff)
+                continue
+
+            # Apply tick effects
+            debuff.tick(enemy_stat, current_time)
+
+        # Remove expired debuffs
+        for debuff in debuffs_to_remove:
+            enemy_stat.remove_debuff(debuff)
+
+
+def create_heat_armor_strip_debuff() -> HeatArmorStripDebuff:
+    """
+    Create heat armor strip debuff.
+    This is automatically managed based on active_dots["heat"].
+    """
+    return HeatArmorStripDebuff()
