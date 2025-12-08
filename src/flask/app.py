@@ -116,13 +116,31 @@ def get_available_mods():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+def matches_search_query(name: str, query: str) -> bool:
+    """
+    Check if a mod name matches a search query (handles both spaces and underscores).
+
+    Args:
+        name: The internal mod name (e.g., "hornet_strike")
+        query: The search query (may contain spaces or underscores)
+
+    Returns:
+        True if the name matches the query
+    """
+    normalized_name = name.lower()
+    normalized_query = query.lower()
+    # Match against raw name (with underscores) or display name (with spaces)
+    return (normalized_query.replace(" ", "_") in normalized_name or
+            normalized_query in normalized_name.replace("_", " "))
+
+
 @app.route("/api/search-mods", methods=["GET"])
 def search_mods():
     """
-    Search for mods by name.
+    Search for mods by name. Supports both spaces and underscores in query.
 
     Query params:
-        q: Search query string
+        q: Search query string (e.g., "hornet strike" or "hornet_strike")
 
     Returns:
         JSON array of matching mods
@@ -137,7 +155,7 @@ def search_mods():
         matching_mods = []
 
         for mod_name in mod_names:
-            if query in mod_name.lower():
+            if matches_search_query(mod_name, query):
                 mod_info = parser.get_mod_info(mod_name)
                 matching_mods.append(
                     {

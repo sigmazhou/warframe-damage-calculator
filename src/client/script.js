@@ -25,6 +25,20 @@
                 return formatted;
             }
 
+            /**
+             * Check if a name matches a search query (handles both spaces and underscores)
+             * @param {string} name - The internal name (e.g., "hornet_strike")
+             * @param {string} query - The search query (may contain spaces or underscores)
+             * @returns {boolean} Whether the name matches the query
+             */
+            function matchesSearchQuery(name, query) {
+                const normalizedName = name.toLowerCase();
+                const normalizedQuery = query.toLowerCase();
+                // Match against raw name (with underscores) or display name (with spaces)
+                return normalizedName.includes(normalizedQuery.replace(/ /g, '_')) ||
+                       normalizedName.replace(/_/g, ' ').includes(normalizedQuery);
+            }
+
             loadEnemyTypes();
             loadElementOptions();
             initializeDefaultElements();
@@ -79,9 +93,9 @@
                         return;
                     }
 
-                    // Filter available buffs
+                    // Filter available buffs (supports both spaces and underscores in query)
                     const matchingBuffs = availableBuffs.filter(buff =>
-                        buff.name.toLowerCase().includes(query)
+                        matchesSearchQuery(buff.name, query)
                     );
 
                     // Render results
@@ -479,10 +493,9 @@
                         return;
                     }
 
-                    // Filter stats
+                    // Filter stats (supports both spaces and underscores in query)
                     const matchingStats = availableStats.filter(stat =>
-                        stat.name.toLowerCase().includes(query) ||
-                        formatDisplayName(stat.name).toLowerCase().includes(query)
+                        matchesSearchQuery(stat.name, query)
                     );
 
                     // Render results
