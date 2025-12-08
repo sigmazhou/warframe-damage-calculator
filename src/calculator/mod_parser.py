@@ -49,7 +49,7 @@ FACTION_MAPPING = {
     "faction_grineer": "grineer",
     "faction_corpus": "corpus",
     "faction_infested": "infested",
-    "faction_corrupted": "corrupted",
+    "faction_corrupted": "orokin",  # Corrupted enemies are part of Orokin faction
 }
 
 

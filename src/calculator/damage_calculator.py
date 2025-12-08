@@ -52,8 +52,9 @@ class DamageCalculator:
         self.element_order = element_order or []
         self.final_buff: InGameBuff = in_game_buff + static_buff
 
-        # apply IGB callbacks
-        for callback in self.final_buff.callbacks:
+        # apply IGB callbacks (sorted by priority_group, lower values first)
+        sorted_callbacks = sorted(self.final_buff.callbacks, key=lambda cb: cb.priority_group)
+        for callback in sorted_callbacks:
             if callback.type == CallbackType.IN_GAME_BUFF:
                 callback(self.final_buff)
 

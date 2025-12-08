@@ -355,9 +355,15 @@ class EnemyType(StrEnum):
 class InGameBuff(_GeneralStat):
     """In-game buffs and combat state modifiers."""
 
-    galvanized_shot: int = 0
-    galvanized_diffusion: int = 0
-    galvanized_aptitude: int = 0
+    galvanized_shot: int = 0  # Stacks for galvanized shot (pistol)
+    galvanized_diffusion: int = 0  # Stacks for galvanized diffusion (pistol)
+    galvanized_aptitude: int = 0  # Stacks for galvanized aptitude (rifle)
+    galvanized_chamber: int = 0  # Stacks for galvanized chamber (rifle)
+    galvanized_savvy: int = 0  # Stacks for galvanized savvy (shotgun)
+    galvanized_hell: int = 0  # Stacks for galvanized hell (shotgun)
+    galvanized_scope: int = 0  # Stacks for galvanized scope (rifle)
+    galvanized_crosshairs: int = 0  # Stacks for galvanized crosshairs (pistol)
+    combo_multiplier: int = 1  # Combo multiplier for melee (1-12, displayed as 1x to 12x)
     final_additive_cd: float = 0  # Includes pet crit multiplier bonus
     attack_speed: float = 0.0  # Includes pet attack speed bonus
     num_debuffs: int = 0  # Number of debuffs on enemy

@@ -1,19 +1,436 @@
 {
+  "_comment_rifle": "=== RIFLE MODS ===",
+  "serration": {
+    "max_level": 10,
+    "damage": 1.65
+  },
+  "amalgam_serration": {
+    "max_level": 10,
+    "damage": 1.65,
+    "sprint_speed": 0.25
+  },
+  "heavy_caliber": {
+    "max_level": 10,
+    "damage": 1.65
+  },
+  "point_strike": {
+    "max_level": 5,
+    "critical_chance": 1.5
+  },
+  "vital_sense": {
+    "max_level": 5,
+    "critical_damage": 1.2
+  },
+  "split_chamber": {
+    "max_level": 5,
+    "multishot": 0.9
+  },
+  "vigilante_armaments": {
+    "max_level": 5,
+    "multishot": 0.6
+  },
+  "speed_trigger": {
+    "max_level": 5,
+    "fire_rate": 0.6
+  },
+  "vile_acceleration": {
+    "max_level": 5,
+    "fire_rate": 0.9,
+    "damage": -0.15
+  },
+  "critical_delay": {
+    "max_level": 5,
+    "critical_chance": 2.0,
+    "fire_rate": -0.2
+  },
+  "hammer_shot": {
+    "max_level": 5,
+    "critical_damage": 0.6,
+    "status_duration": 0.4
+  },
+  "shred": {
+    "max_level": 5,
+    "fire_rate": 0.3,
+    "punch_through": 1.2
+  },
+  "primed_shred": {
+    "max_level": 10,
+    "fire_rate": 0.55,
+    "punch_through": 2.2
+  },
+  "primed_fast_hands": {
+    "max_level": 10,
+    "reload_speed": 0.55
+  },
+  "hellfire": {
+    "max_level": 5,
+    "heat_damage": 0.9
+  },
+  "stormbringer": {
+    "max_level": 5,
+    "electricity_damage": 0.9
+  },
+  "cryo_rounds": {
+    "max_level": 5,
+    "cold_damage": 0.9
+  },
+  "primed_cryo_rounds": {
+    "max_level": 10,
+    "cold_damage": 1.65
+  },
+  "infected_clip": {
+    "max_level": 5,
+    "toxin_damage": 0.9
+  },
+  "thermite_rounds": {
+    "max_level": 5,
+    "heat_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "high_voltage": {
+    "max_level": 5,
+    "electricity_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "rime_rounds": {
+    "max_level": 5,
+    "cold_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "malignant_force": {
+    "max_level": 5,
+    "toxin_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "fanged_fusillade": {
+    "max_level": 5,
+    "slash_damage": 1.2
+  },
+  "piercing_caliber": {
+    "max_level": 5,
+    "puncture_damage": 1.2
+  },
+  "crash_course": {
+    "max_level": 5,
+    "impact_damage": 1.2
+  },
+  "rifle_aptitude": {
+    "max_level": 5,
+    "status_chance": 0.9
+  },
+  "primed_bane_of_grineer": {
+    "max_level": 10,
+    "faction_grineer": 0.55
+  },
+  "primed_bane_of_corpus": {
+    "max_level": 10,
+    "faction_corpus": 0.55
+  },
+  "primed_bane_of_infested": {
+    "max_level": 10,
+    "faction_infested": 0.55
+  },
+  "hunter_munitions": {
+    "max_level": 5,
+    "slash_chance_on_crit": 0.3,
+    "special_notes": "Crit hits have 30% chance to apply slash status"
+  },
+  "argon_scope": {
+    "max_level": 5,
+    "critical_chance": 1.35,
+    "special_notes": "On headshot: +135% crit chance when aiming for 9s. Always assumes headshot."
+  },
+  "bladed_rounds": {
+    "max_level": 5,
+    "critical_damage": 1.2,
+    "special_notes": "On kill: +120% crit damage when aiming for 9s. Always assumes active."
+  },
+  "galvanized_aptitude": {
+    "max_level": 10,
+    "status_chance": 0.8,
+    "special_notes": "Base +80% status chance. On kill: +40% damage per status type for 20s, stacks up to 2x. Callback handles damage bonus."
+  },
+  "galvanized_chamber": {
+    "max_level": 5,
+    "multishot": 0.8,
+    "special_notes": "Base +80% multishot. On kill: +30% multishot for 20s, stacks up to 5x. Callback handles stacks."
+  },
+  "galvanized_scope": {
+    "max_level": 5,
+    "critical_chance": 1.2,
+    "special_notes": "Base +120% crit chance when aiming. On headshot kill: +40% crit chance stacks up to 5x. Callback handles stacks."
+  },
+
+  "_comment_pistol": "=== PISTOL MODS ===",
+  "hornet_strike": {
+    "max_level": 10,
+    "damage": 2.2
+  },
+  "augur_pact": {
+    "max_level": 5,
+    "damage": 0.9
+  },
+  "magnum_force": {
+    "max_level": 10,
+    "damage": 1.65
+  },
+  "pistol_gambit": {
+    "max_level": 5,
+    "critical_chance": 1.2
+  },
+  "primed_pistol_gambit": {
+    "max_level": 10,
+    "critical_chance": 1.87
+  },
+  "creeping_bullseye": {
+    "max_level": 5,
+    "critical_chance": 2.0,
+    "fire_rate": -0.2
+  },
+  "target_cracker": {
+    "max_level": 5,
+    "critical_damage": 0.6
+  },
+  "primed_target_cracker": {
+    "max_level": 10,
+    "critical_damage": 1.1
+  },
+  "hollow_point": {
+    "max_level": 5,
+    "critical_damage": 0.6,
+    "damage": -0.15
+  },
+  "barrel_diffusion": {
+    "max_level": 5,
+    "multishot": 1.2
+  },
+  "amalgam_barrel_diffusion": {
+    "max_level": 5,
+    "multishot": 1.1
+  },
+  "lethal_torrent": {
+    "max_level": 5,
+    "fire_rate": 0.6,
+    "multishot": 0.6
+  },
+  "gunslinger": {
+    "max_level": 5,
+    "fire_rate": 0.72
+  },
+  "anemic_agility": {
+    "max_level": 5,
+    "fire_rate": 0.9,
+    "damage": -0.15
+  },
+  "heated_charge": {
+    "max_level": 5,
+    "heat_damage": 0.9
+  },
+  "primed_heated_charge": {
+    "max_level": 10,
+    "heat_damage": 1.65
+  },
+  "convulsion": {
+    "max_level": 5,
+    "electricity_damage": 0.9
+  },
+  "primed_convulsion": {
+    "max_level": 10,
+    "electricity_damage": 1.65
+  },
+  "deep_freeze": {
+    "max_level": 5,
+    "cold_damage": 0.9
+  },
+  "pathogen_rounds": {
+    "max_level": 5,
+    "toxin_damage": 0.9
+  },
+  "scorch": {
+    "max_level": 5,
+    "heat_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "jolt": {
+    "max_level": 5,
+    "electricity_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "frostbite": {
+    "max_level": 5,
+    "cold_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "pistol_pestilence": {
+    "max_level": 5,
+    "toxin_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "maim": {
+    "max_level": 5,
+    "slash_damage": 1.2
+  },
+  "bore": {
+    "max_level": 5,
+    "puncture_damage": 1.2
+  },
+  "pummel": {
+    "max_level": 5,
+    "impact_damage": 1.2
+  },
+  "sure_shot": {
+    "max_level": 5,
+    "status_chance": 0.9
+  },
+  "primed_fulmination": {
+    "max_level": 10,
+    "blast_radius": 0.44
+  },
+  "hydraulic_crosshairs": {
+    "max_level": 5,
+    "critical_chance": 1.35,
+    "special_notes": "On headshot: +135% crit chance when aiming for 9s. Always assumes headshot."
+  },
+  "sharpened_bullets": {
+    "max_level": 5,
+    "critical_damage": 0.75,
+    "special_notes": "On kill: +75% crit damage when aiming for 9s. Always assumes active."
+  },
+  "galvanized_shot": {
+    "max_level": 10,
+    "status_chance": 0.8,
+    "special_notes": "Base +80% status chance. On kill: +40% damage per status type for 14s, stacks up to 3x. Callback handles damage bonus."
+  },
+  "galvanized_diffusion": {
+    "max_level": 10,
+    "multishot": 1.1,
+    "special_notes": "Base +110% multishot. On kill: +30% multishot for 20s, stacks up to 4x. Callback handles stacks."
+  },
+  "galvanized_crosshairs": {
+    "max_level": 5,
+    "critical_chance": 1.2,
+    "special_notes": "Base +120% crit chance when aiming. On headshot kill: +40% crit chance stacks up to 5x. Callback handles stacks."
+  },
+
+  "_comment_shotgun": "=== SHOTGUN MODS ===",
+  "point_blank": {
+    "max_level": 5,
+    "damage": 0.9
+  },
   "primed_point_blank": {
     "max_level": 10,
     "damage": 1.65
+  },
+  "vicious_spread": {
+    "max_level": 5,
+    "damage": 0.9
+  },
+  "blaze": {
+    "max_level": 5,
+    "damage": 0.6,
+    "heat_damage": 0.6
+  },
+  "blunderbuss": {
+    "max_level": 5,
+    "critical_chance": 0.9
+  },
+  "primed_blunderbuss": {
+    "max_level": 10,
+    "critical_chance": 1.65
+  },
+  "critical_deceleration": {
+    "max_level": 5,
+    "critical_chance": 2.0,
+    "fire_rate": -0.2
+  },
+  "ravage": {
+    "max_level": 5,
+    "critical_damage": 0.6
   },
   "primed_ravage": {
     "max_level": 10,
     "critical_damage": 1.1
   },
+  "hells_chamber": {
+    "max_level": 5,
+    "multishot": 1.2
+  },
+  "shotgun_barrage": {
+    "max_level": 5,
+    "fire_rate": 0.9
+  },
+  "frail_momentum": {
+    "max_level": 5,
+    "fire_rate": 0.9,
+    "damage": -0.15
+  },
+  "primed_tactical_pump": {
+    "max_level": 10,
+    "reload_speed": 1.0
+  },
+  "primed_ammo_stock": {
+    "max_level": 10,
+    "magazine_capacity": 1.1
+  },
+  "incendiary_coat": {
+    "max_level": 5,
+    "heat_damage": 0.9
+  },
+  "charged_shell": {
+    "max_level": 5,
+    "electricity_damage": 0.9
+  },
   "primed_charged_shell": {
     "max_level": 10,
     "electricity_damage": 1.65
   },
+  "chilling_grasp": {
+    "max_level": 5,
+    "cold_damage": 0.9
+  },
   "primed_chilling_grasp": {
     "max_level": 10,
     "cold_damage": 1.65
+  },
+  "contagious_spread": {
+    "max_level": 5,
+    "toxin_damage": 0.9
+  },
+  "scattering_inferno": {
+    "max_level": 5,
+    "heat_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "shell_shock": {
+    "max_level": 5,
+    "electricity_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "frigid_blast": {
+    "max_level": 5,
+    "cold_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "toxic_barrage": {
+    "max_level": 5,
+    "toxin_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "sweeping_serration": {
+    "max_level": 5,
+    "slash_damage": 1.2
+  },
+  "breach_loader": {
+    "max_level": 5,
+    "puncture_damage": 1.2
+  },
+  "full_contact": {
+    "max_level": 5,
+    "impact_damage": 1.2
+  },
+  "shotgun_savvy": {
+    "max_level": 5,
+    "status_chance": 0.9
   },
   "primed_cleanse_grineer": {
     "max_level": 10,
@@ -31,237 +448,313 @@
     "max_level": 10,
     "faction_corrupted": 0.55
   },
-  "primed_tactical_pump": {
-    "max_level": 10,
-    "reload_speed": 1.0
-  },
-  "primed_ammo_stock": {
-    "max_level": 10,
-    "magazine_capacity": 1.1
-  },
   "primed_shotgun_ammo_mutation": {
     "max_level": 10,
-    "special_notes": "特殊效果，拾取步枪/手枪弹药转换为霰弹枪弹药"
+    "special_notes": "Converts rifle/pistol ammo to shotgun ammo"
+  },
+  "laser_sight": {
+    "max_level": 5,
+    "critical_chance": 1.2,
+    "special_notes": "On headshot: +120% crit chance when aiming for 9s. Always assumes headshot."
+  },
+  "shrapnel_shot": {
+    "max_level": 5,
+    "critical_damage": 0.99,
+    "special_notes": "On kill: +99% crit damage when aiming for 9s. Always assumes active."
+  },
+  "galvanized_savvy": {
+    "max_level": 10,
+    "status_chance": 0.8,
+    "special_notes": "Base +80% status chance. On kill: +40% damage per status type for 20s, stacks up to 2x. Callback handles damage bonus."
+  },
+  "galvanized_hell": {
+    "max_level": 5,
+    "multishot": 1.1,
+    "special_notes": "Base +110% multishot. On kill: +30% multishot for 20s, stacks up to 4x. Callback handles stacks."
+  },
+
+  "_comment_melee": "=== MELEE MODS ===",
+  "pressure_point": {
+    "max_level": 5,
+    "damage": 1.2
   },
   "primed_pressure_point": {
     "max_level": 10,
-    "melee_damage": 1.65
+    "damage": 1.65
   },
-  "primed_fever_strike": {
-    "max_level": 10,
-    "toxin_damage": 1.65
+  "spoiled_strike": {
+    "max_level": 5,
+    "damage": 1.0,
+    "attack_speed": -0.2
   },
-  "primed_heavy_trauma": {
+  "sacrificial_pressure": {
     "max_level": 10,
-    "impact_damage": 1.65
+    "damage": 1.1,
+    "special_notes": "x1.33 damage to Sentients"
   },
-  "primed_reach": {
+  "true_steel": {
+    "max_level": 5,
+    "critical_chance": 1.2
+  },
+  "sacrificial_steel": {
     "max_level": 10,
-    "range": 1.65
+    "critical_chance": 2.2,
+    "special_notes": "x2 for heavy attacks, x1.33 damage to Sentients"
+  },
+  "organ_shatter": {
+    "max_level": 5,
+    "critical_damage": 0.9
+  },
+  "amalgam_organ_shatter": {
+    "max_level": 5,
+    "critical_damage": 0.85
+  },
+  "gladiator_might": {
+    "max_level": 5,
+    "critical_damage": 0.6
+  },
+  "fury": {
+    "max_level": 5,
+    "attack_speed": 0.3
   },
   "primed_fury": {
     "max_level": 10,
     "attack_speed": 0.55
   },
-  "primed_pistol_gambit": {
-    "max_level": 10,
-    "critical_chance": 1.87
-  },
-  "primed_target_cracker": {
-    "max_level": 10,
-    "critical_damage": 1.1
-  },
-  "primed_heated_charge": {
-    "max_level": 10,
-    "heat_damage": 1.65
-  },
-  "primed_fulmination": {
-    "max_level": 10,
-    "blast_radius": 0.44
-  },
-  "galvanized_shot": {
-    "max_level": 10,
-    "status_chance": 0.8,
-    "special_notes": "击杀获得buff，根据目标异常状态数量提升直接命中伤害，最多3层。每层每个状态提供40%伤害加成"
-  },
-  "galvanized_diffusion": {
-    "max_level": 10,
-    "multishot": 1.1,
-    "special_notes": "击杀获得buff"
-  },
-  "serration": {
-    "max_level": 10,
-    "damage": 1.65
-  },
-  "hornet_strike": {
-    "max_level": 10,
-    "damage": 2.2
-  },
-  "point_strike": {
+  "gladiator_vice": {
     "max_level": 5,
-    "critical_chance": 1.5
+    "attack_speed": 0.3
   },
-  "vital_sense": {
+  "quickening": {
     "max_level": 5,
-    "critical_damage": 1.2
+    "attack_speed": 0.4,
+    "additional_combo_count_chance": 0.2
   },
-  "split_chamber": {
+  "berserker_fury": {
     "max_level": 5,
-    "multishot": 0.9
+    "attack_speed": 0.7,
+    "special_notes": "On melee kill: +35% attack speed for 10s, stacks up to 2x. Implemented as 0.7 for now"
   },
-  "barrel_diffusion": {
-    "max_level": 5,
-    "multishot": 1.2
-  },
-  "lethal_torrent": {
-    "max_level": 5,
-    "fire_rate": 0.6,
-    "multishot": 0.6
-  },
-  "galvanized_aptitude": {
+  "primed_reach": {
     "max_level": 10,
-    "damage_per_status": 0.8,
-    "special_notes": "步枪版，每个命中敌人的状态效果提供伤害加成"
+    "range": 1.65
   },
-  "galvanized_savvy": {
+  "fever_strike": {
+    "max_level": 5,
+    "toxin_damage": 0.9
+  },
+  "primed_fever_strike": {
     "max_level": 10,
-    "damage_per_status": 0.8,
-    "special_notes": "霰弹枪版，每个命中敌人的状态效果提供伤害加成"
+    "toxin_damage": 1.65
   },
-  "galvanized_crosshairs": {
+  "north_wind": {
     "max_level": 5,
-    "critical_chance": 1.2,
-    "on_headshot": "特殊效果",
-    "special_notes": "爆头获得暴击几率加成"
+    "cold_damage": 0.9
   },
-  "galvanized_chamber": {
+  "molten_impact": {
     "max_level": 5,
-    "multishot": 0.8,
-    "on_kill": "特殊效果",
-    "special_notes": "击杀获得多重射击加成"
+    "heat_damage": 0.9
   },
-  "galvanized_hell": {
+  "shocking_touch": {
     "max_level": 5,
-    "multishot": 0.8,
-    "on_kill": "特殊效果",
-    "special_notes": "霰弹枪击杀获得多重射击加成"
+    "electricity_damage": 0.9
   },
-  "condition_overload": {
-    "max_level": 3,
-    "damage_per_status": 0.8,
-    "special_notes": "近战武器MOD，每个独特状态类型提供伤害加成"
-  },
-  "blood_rush": {
-    "max_level": 10,
-    "critical_chance_per_combo": 0.6,
-    "special_notes": "基于连击倍率提供暴击几率"
-  },
-  "weeping_wounds": {
-    "max_level": 10,
-    "status_chance_per_combo": 0.4,
-    "special_notes": "基于连击倍率提供状态触发几率"
-  },
-  "hunter_munitions": {
-    "max_level": 5,
-    "slash_chance_on_crit": 0.3,
-    "special_notes": "暴击时有30%几率造成切割状态"
-  },
-  "argon_scope": {
-    "max_level": 5,
-    "critical_chance": 1.35,
-    "on_headshot": "特殊效果",
-    "special_notes": "爆头获得暴击几率加成"
-  },
-  "bladed_rounds": {
-    "max_level": 5,
-    "critical_damage": 1.2,
-    "on_critical_hit": "特殊效果",
-    "special_notes": "暴击后获得暴击伤害加成"
-  },
-  "primed_cryo_rounds": {
-    "max_level": 10,
-    "cold_damage": 1.65
-  },
-  "primed_heated_charge": {
-    "max_level": 10,
-    "heat_damage": 1.65
-  },
-  "high_voltage": {
-    "max_level": 5,
-    "electricity_damage": 0.6,
-    "status_chance": 0.6
-  },
-  "malignant_force": {
+  "virulent_scourge": {
     "max_level": 5,
     "toxin_damage": 0.6,
     "status_chance": 0.6
   },
-  "thermite_rounds": {
-    "max_level": 5,
-    "heat_damage": 0.6,
-    "status_chance": 0.6
-  },
-  "rime_rounds": {
+  "vicious_frost": {
     "max_level": 5,
     "cold_damage": 0.6,
     "status_chance": 0.6
   },
-  "vigilante_armaments": {
+  "volcanic_edge": {
+    "max_level": 5,
+    "heat_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "voltaic_strike": {
+    "max_level": 5,
+    "electricity_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "jagged_edge": {
+    "max_level": 5,
+    "slash_damage": 0.9
+  },
+  "buzz_kill": {
+    "max_level": 5,
+    "slash_damage": 1.2
+  },
+  "auger_strike": {
+    "max_level": 5,
+    "puncture_damage": 1.2
+  },
+  "heavy_trauma": {
+    "max_level": 5,
+    "impact_damage": 0.9
+  },
+  "primed_heavy_trauma": {
+    "max_level": 10,
+    "impact_damage": 1.65
+  },
+  "collision_force": {
+    "max_level": 5,
+    "impact_damage": 1.2
+  },
+  "melee_prowess": {
+    "max_level": 5,
+    "status_chance": 0.9
+  },
+  "drifting_contact": {
+    "max_level": 5,
+    "status_chance": 0.4
+  },
+  "condition_overload": {
+    "max_level": 3,
+    "damage_per_status": 0.8,
+    "special_notes": "+80% damage per status type on target"
+  },
+  "blood_rush": {
+    "max_level": 10,
+    "critical_chance_per_combo": 0.4,
+    "special_notes": "+40% crit chance per combo multiplier level. Callback handles calculation."
+  },
+  "weeping_wounds": {
+    "max_level": 10,
+    "status_chance_per_combo": 0.4,
+    "special_notes": "+40% status chance per combo multiplier"
+  },
+
+  "_comment_archgun": "=== ARCHGUN MODS ===",
+  "rubedo_lined_barrel": {
+    "max_level": 5,
+    "damage": 1.0
+  },
+  "primed_rubedo_lined_barrel": {
+    "max_level": 10,
+    "damage": 1.87
+  },
+  "parallax_scope": {
+    "max_level": 5,
+    "critical_chance": 1.0
+  },
+  "hollowed_bullets": {
+    "max_level": 5,
+    "critical_damage": 0.8
+  },
+  "dual_rounds": {
     "max_level": 5,
     "multishot": 0.6
   },
-  "critical_delay": {
+  "primed_dual_rounds": {
+    "max_level": 10,
+    "multishot": 1.1
+  },
+  "automatic_trigger": {
     "max_level": 5,
-    "critical_chance": 2.0,
-    "fire_rate": -0.2
+    "fire_rate": 0.6
   },
-  "primed_pistol_gambit": {
-    "max_level": 10,
-    "critical_chance": 1.87
-  },
-  "primed_target_cracker": {
-    "max_level": 10,
-    "critical_damage": 1.1
-  },
-  "amalgam_serration": {
-    "max_level": 10,
-    "damage": 1.65,
-    "sprint_speed": 0.25
-  },
-  "hammer_shot": {
+  "combustion_rounds": {
     "max_level": 5,
+    "heat_damage": 1.2
+  },
+  "electrified_barrel": {
+    "max_level": 5,
+    "electricity_damage": 1.2
+  },
+  "polar_magazine": {
+    "max_level": 5,
+    "cold_damage": 1.2
+  },
+  "venomous_clip": {
+    "max_level": 5,
+    "toxin_damage": 1.2
+  },
+  "magma_chamber": {
+    "max_level": 5,
+    "heat_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "charged_bullets": {
+    "max_level": 5,
+    "electricity_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "hypothermic_shell": {
+    "max_level": 5,
+    "cold_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "contamination_casing": {
+    "max_level": 5,
+    "toxin_damage": 0.6,
+    "status_chance": 0.6
+  },
+  "zodiac_shred": {
+    "max_level": 5,
+    "slash_damage": 0.9
+  },
+  "quasar_drill": {
+    "max_level": 5,
+    "puncture_damage": 0.9
+  },
+  "comet_blast": {
+    "max_level": 5,
+    "impact_damage": 0.9
+  },
+  "modified_munitions": {
+    "max_level": 5,
+    "status_chance": 0.6
+  },
+  "sabot_rounds": {
+    "max_level": 5,
+    "damage": 0.6,
+    "punch_through": 3.0
+  },
+  "containment_breach": {
+    "max_level": 5,
+    "radiation_damage": 0.6,
+    "multishot": 0.3
+  },
+  "magnetized_cycle": {
+    "max_level": 5,
+    "magnetic_damage": 0.6,
+    "fire_rate": 0.3
+  },
+  "critical_focus": {
+    "max_level": 5,
+    "critical_chance": 0.6,
     "critical_damage": 0.6,
-    "status_duration": 0.4
+    "special_notes": "+60% crit chance and crit damage when aiming. Always assumes aiming."
   },
-  "vile_acceleration": {
+  "marked_target": {
     "max_level": 5,
-    "fire_rate": 0.9,
-    "damage": -0.15
+    "status_chance": 1.2,
+    "special_notes": "+120% status chance when aiming. Always assumes aiming."
   },
-  "primed_fast_hands": {
-    "max_level": 10,
-    "reload_speed": 0.55
-  },
-  "primed_bane_of_grineer": {
-    "max_level": 10,
-    "faction_grineer": 0.55
-  },
-  "primed_bane_of_corpus": {
-    "max_level": 10,
-    "faction_corpus": 0.55
-  },
-  "primed_bane_of_infested": {
-    "max_level": 10,
-    "faction_infested": 0.55
-  },
-  "hydraulic_crosshairs": {
+  "deadly_efficiency": {
     "max_level": 5,
-    "critical_chance": 1.35,
-    "on_headshot": "特殊效果"
+    "damage": 1.2,
+    "special_notes": "On reload from empty: +120% damage for 9s. Always assumes active."
   },
-  "sharpened_bullets": {
+  "primed_deadly_efficiency": {
+    "max_level": 10,
+    "damage": 2.2,
+    "special_notes": "On reload from empty: +220% damage for 17s. Always assumes active."
+  },
+  "archgun_ace": {
     "max_level": 5,
-    "critical_damage": 1.1,
-    "on_headshot": "特殊效果"
+    "fire_rate": 0.5,
+    "special_notes": "On headshot kill: +50% fire/charge rate, +100% reload speed for 9s. Always assumes active."
+  },
+
+  "_comment_arcane": "=== ARCANES ===",
+  "secondary_enervate": {
+    "special_notes": "Averages crit chance with 3.05. Callback handles calculation."
+  },
+  "secondary_outburst": {
+    "special_notes": "+20% of crit chance & crit dmg buff per combo multiplier. Max 240%. Callback handles calculation."
   }
 }
