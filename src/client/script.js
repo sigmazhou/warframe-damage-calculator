@@ -1032,8 +1032,15 @@
                             const statType = searchInput.dataset.selectedStat;
                             if (statType) {
                                 const index = searchInput.dataset.statIndex;
+                                const statRow = rivenItem.querySelector(`.riven-stat-row[data-stat-index="${index}"]`);
                                 const valueInput = rivenItem.querySelector(`.riven-stat-value[data-stat-index="${index}"]`);
-                                const value = parseFloat(valueInput.value || 0);
+                                let value = parseFloat(valueInput.value || 0);
+
+                                // If stat is marked as negative, ensure value is negative
+                                const isNegative = statRow && statRow.dataset.isNegative === 'true';
+                                if (isNegative) {
+                                    value = -Math.abs(value);
+                                }
 
                                 // Store as key-value pairs like in-game buffs
                                 rivenStats[statType] = value;
