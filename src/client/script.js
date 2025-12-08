@@ -336,6 +336,13 @@
                             updateAllRivenRollPercents(rivenItem, build);
                         });
 
+                        // Reattach slider input listener
+                        const slider = statRow.querySelector('.riven-roll-slider');
+                        slider.addEventListener('input', function() {
+                            const percent = parseFloat(this.value);
+                            updateRivenStatFromSlider(rivenItem, build, parseInt(index), percent);
+                        });
+
                         // Setup searchable dropdown with riven stats from weapon type
                         setupSearchableDropdown(
                             searchInput,
@@ -622,9 +629,12 @@
 
                 config.stats.forEach(stat => {
                     const percentSpan = stat.row.querySelector('.riven-roll-percent');
+                    const slider = stat.row.querySelector('.riven-roll-slider');
 
                     if (!stat.statName || !stat.valueInput.value) {
                         percentSpan.textContent = '';
+                        slider.disabled = true;
+                        slider.value = 0;
                         return;
                     }
 
@@ -640,6 +650,8 @@
 
                     if (avgValue === null || avgValue === 0) {
                         percentSpan.textContent = '';
+                        slider.disabled = true;
+                        slider.value = 0;
                         return;
                     }
 
@@ -649,12 +661,53 @@
                         ? ((Math.abs(currentValue) / Math.abs(avgValue)) - 1) * 100
                         : ((currentValue / avgValue) - 1) * 100;
 
+                    // Update slider
+                    slider.disabled = false;
+                    slider.value = Math.max(-10, Math.min(10, percentFromAvg));
+
                     // Display with sign and color (always show + for non-negative)
                     // For negative stats, reverse the color (higher abs value = worse)
                     percentSpan.textContent = `+${percentFromAvg.toFixed(1)}%`.replace('+-', '-');
                     const isGood = stat.isNegative ? percentFromAvg < 0 : percentFromAvg >= 0;
                     percentSpan.style.color = isGood ? '#4a9' : '#a94';
                 });
+            }
+
+            /**
+             * Update a single riven stat value based on slider percentage
+             * @param {HTMLElement} rivenItem - The riven item DOM element
+             * @param {HTMLElement} build - The build containing the riven
+             * @param {number} statIndex - The stat row index
+             * @param {number} percent - The roll percentage (-10 to +10)
+             */
+            function updateRivenStatFromSlider(rivenItem, build, statIndex, percent) {
+                const config = getRivenConfig(rivenItem, build);
+                if (!config) return;
+
+                const stat = config.stats[statIndex];
+                if (!stat || !stat.statName) return;
+
+                const avgValue = calculateRivenStatValue(
+                    stat.statName,
+                    config.weaponType,
+                    config.disposition,
+                    config.positiveCount,
+                    config.negativeCount,
+                    stat.isNegative,
+                    'avg'
+                );
+
+                if (avgValue === null) return;
+
+                // Calculate new value from percentage
+                const newValue = avgValue * (1 + percent / 100);
+                stat.valueInput.value = Math.round(newValue * 1000) / 1000;
+
+                // Update display directly (more efficient than recalculating all stats)
+                const percentSpan = stat.row.querySelector('.riven-roll-percent');
+                percentSpan.textContent = `+${percent.toFixed(1)}%`.replace('+-', '-');
+                const isGood = stat.isNegative ? percent < 0 : percent >= 0;
+                percentSpan.style.color = isGood ? '#4a9' : '#a94';
             }
 
             /**
@@ -882,6 +935,8 @@
                             </div>
                             <input type="number" class="riven-stat-value" data-stat-index="${i}"
                                    step="0.01" placeholder="Value" disabled>
+                            <input type="range" class="riven-roll-slider" data-stat-index="${i}"
+                                   min="-10" max="10" step="0.1" value="0" disabled>
                             <span class="riven-roll-percent" data-stat-index="${i}"></span>
                         </div>
                     `;

@@ -373,6 +373,61 @@ input:focus, select:focus {
     cursor: not-allowed;
 }
 
+.riven-roll-slider {
+    width: 60px;
+    height: 12px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+}
+
+.riven-roll-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+}
+
+.riven-roll-slider::-moz-range-track {
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+}
+
+.riven-roll-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+    margin-top: -4px;
+}
+
+.riven-roll-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+    border: none;
+}
+
+.riven-roll-slider:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.riven-roll-slider:disabled::-webkit-slider-thumb {
+    cursor: not-allowed;
+}
+
+.riven-roll-slider:disabled::-moz-range-thumb {
+    cursor: not-allowed;
+}
+
 .riven-roll-percent {
     font-size: 10px;
     min-width: 40px;
