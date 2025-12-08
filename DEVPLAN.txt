@@ -1,5 +1,6 @@
 Things i'm working on, if you want to do any of these, let me know to avoid duplicate work
 
 1. show mod display name and description when selecting
-2. more arcanes
-3. better sim
+2. json outout of builds
+3. more arcanes
+4. better sim
