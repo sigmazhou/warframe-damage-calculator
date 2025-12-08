@@ -429,10 +429,13 @@ def calculate_damage():
         multishot = calculator._get_ms()
         attack_speed = calculator._get_as()
         status_chance = calculator._get_sc()
+        crit_chance = calculator._get_cc()
+        crit_damage = calculator._get_cd()
 
         logger.info(
             f"Intermediate calculations - base: {base_damage}, crit_mult: {crit_multiplier}, "
-            f"multishot: {multishot}, attack_speed: {attack_speed}, status_chance: {status_chance}"
+            f"multishot: {multishot}, attack_speed: {attack_speed}, status_chance: {status_chance}, "
+            f"crit_chance: {crit_chance}, crit_damage: {crit_damage}"
         )
 
         logger.info("=== Calculation Complete ===")
@@ -462,7 +465,9 @@ def calculate_damage():
             [
                 ("base_damage_multiplier", base_damage),
                 ("multishot", multishot),
-                ("critical_multiplier", crit_multiplier),
+                ("critical_chance", crit_chance),
+                ("critical_damage", crit_damage),
+                ("combined_crit_multiplier", crit_multiplier),
                 ("attack_speed", attack_speed),
                 ("status_chance", status_chance),
                 ("elemental_damage_multiplier", elem_total),

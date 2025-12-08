@@ -4,7 +4,9 @@ from typing import Any
 
 
 class CallbackType(StrEnum):
+    # basically where it should be applied and what should be passed in
     IN_GAME_BUFF = auto()
+    DAMAGE_CALCULATOR = auto()
 
 
 class CallBack:
@@ -28,18 +30,23 @@ galvanized_shot = CallBack(
     CallbackType.IN_GAME_BUFF,
 )
 
+
+def _secondary_enervate(dc):
+    dc.final_buff.final_additive_cc = (3.05 + dc._get_cc()) / 2
+    dc.final_buff.critical_chance = -1
+
+
 # Secondary Enervate (Arcane): Average crit chance boost
 # Priority group 1: executes after all other callbacks (priority 0)
 secondary_enervate = CallBack(
-    lambda igb: setattr(igb, "critical_chance", (3.05 + igb.critical_chance) / 2),
-    CallbackType.IN_GAME_BUFF,
+    _secondary_enervate,
+    CallbackType.DAMAGE_CALCULATOR,
     priority_group=1,
 )
 
 
 # Secondary Outburst (Arcane): +20% of crit chance buff & crit dmg buff per combo multiplier
 # Max 240% (at 12x combo). Uses combo_multiplier directly (no -1).
-# Priority group 1: executes after all other callbacks (priority 0)
 def _secondary_outburst(igb):
     bonus = igb.combo_multiplier * 0.2
     igb.critical_chance += igb.critical_chance * bonus

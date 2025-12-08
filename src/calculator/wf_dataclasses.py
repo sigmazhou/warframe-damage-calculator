@@ -364,6 +364,7 @@ class InGameBuff(_GeneralStat):
     galvanized_scope: int = 0  # Stacks for galvanized scope (rifle)
     galvanized_crosshairs: int = 0  # Stacks for galvanized crosshairs (pistol)
     combo_multiplier: int = 1  # Combo multiplier for melee (1-12, displayed as 1x to 12x)
+    final_additive_cc: float = 0  # Additive crit chance (applied after multiplier)
     final_additive_cd: float = 0  # Includes pet crit multiplier bonus
     attack_speed: float = 0.0  # Includes pet attack speed bonus
     num_debuffs: int = 0  # Number of debuffs on enemy
