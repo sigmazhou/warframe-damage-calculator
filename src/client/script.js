@@ -26,17 +26,30 @@
             }
 
             /**
-             * Check if a name matches a search query (handles both spaces and underscores)
+             * Get match priority for search (lower = better match)
              * @param {string} name - The internal name (e.g., "hornet_strike")
              * @param {string} query - The search query (may contain spaces or underscores)
-             * @returns {boolean} Whether the name matches the query
+             * @returns {number} Match priority: 0 = prefix match, 1 = contains match, -1 = no match
              */
-            function matchesSearchQuery(name, query) {
+            function getSearchMatchPriority(name, query) {
                 const normalizedName = name.toLowerCase();
                 const normalizedQuery = query.toLowerCase();
-                // Match against raw name (with underscores) or display name (with spaces)
-                return normalizedName.includes(normalizedQuery.replace(/ /g, '_')) ||
-                       normalizedName.replace(/_/g, ' ').includes(normalizedQuery);
+                const queryWithUnderscores = normalizedQuery.replace(/ /g, '_');
+                const nameWithSpaces = normalizedName.replace(/_/g, ' ');
+
+                // Check prefix match (highest priority)
+                if (normalizedName.startsWith(queryWithUnderscores) ||
+                    nameWithSpaces.startsWith(normalizedQuery)) {
+                    return 0;
+                }
+
+                // Check contains match (lower priority)
+                if (normalizedName.includes(queryWithUnderscores) ||
+                    nameWithSpaces.includes(normalizedQuery)) {
+                    return 1;
+                }
+
+                return -1; // No match
             }
 
             loadEnemyTypes();
@@ -93,10 +106,12 @@
                         return;
                     }
 
-                    // Filter available buffs (supports both spaces and underscores in query)
-                    const matchingBuffs = availableBuffs.filter(buff =>
-                        matchesSearchQuery(buff.name, query)
-                    );
+                    // Filter and sort available buffs (prefix matches first, then contains matches)
+                    const matchingBuffs = availableBuffs
+                        .map(buff => ({ buff, priority: getSearchMatchPriority(buff.name, query) }))
+                        .filter(item => item.priority >= 0)
+                        .sort((a, b) => a.priority - b.priority)
+                        .map(item => item.buff);
 
                     // Render results
                     searchResults.innerHTML = '';
@@ -493,10 +508,12 @@
                         return;
                     }
 
-                    // Filter stats (supports both spaces and underscores in query)
-                    const matchingStats = availableStats.filter(stat =>
-                        matchesSearchQuery(stat.name, query)
-                    );
+                    // Filter and sort stats (prefix matches first, then contains matches)
+                    const matchingStats = availableStats
+                        .map(stat => ({ stat, priority: getSearchMatchPriority(stat.name, query) }))
+                        .filter(item => item.priority >= 0)
+                        .sort((a, b) => a.priority - b.priority)
+                        .map(item => item.stat);
 
                     // Render results
                     searchResults.innerHTML = '';

@@ -116,22 +116,31 @@ def get_available_mods():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-def matches_search_query(name: str, query: str) -> bool:
+def get_search_match_priority(name: str, query: str) -> int:
     """
-    Check if a mod name matches a search query (handles both spaces and underscores).
+    Get match priority for search (lower = better match).
 
     Args:
         name: The internal mod name (e.g., "hornet_strike")
         query: The search query (may contain spaces or underscores)
 
     Returns:
-        True if the name matches the query
+        Match priority: 0 = prefix match, 1 = contains match, -1 = no match
     """
     normalized_name = name.lower()
     normalized_query = query.lower()
-    # Match against raw name (with underscores) or display name (with spaces)
-    return (normalized_query.replace(" ", "_") in normalized_name or
-            normalized_query in normalized_name.replace("_", " "))
+    query_with_underscores = normalized_query.replace(" ", "_")
+    name_with_spaces = normalized_name.replace("_", " ")
+
+    # Check prefix match (highest priority)
+    if normalized_name.startswith(query_with_underscores) or name_with_spaces.startswith(normalized_query):
+        return 0
+
+    # Check contains match (lower priority)
+    if query_with_underscores in normalized_name or normalized_query in name_with_spaces:
+        return 1
+
+    return -1  # No match
 
 
 @app.route("/api/search-mods", methods=["GET"])
@@ -155,15 +164,23 @@ def search_mods():
         matching_mods = []
 
         for mod_name in mod_names:
-            if matches_search_query(mod_name, query):
+            priority = get_search_match_priority(mod_name, query)
+            if priority >= 0:
                 mod_info = parser.get_mod_info(mod_name)
                 matching_mods.append(
                     {
                         "id": mod_name,
                         "name": mod_name,
                         "max_level": mod_info.get("max_level", 0),
+                        "_priority": priority,  # For sorting
                     }
                 )
+
+        # Sort by priority (prefix matches first)
+        matching_mods.sort(key=lambda x: x["_priority"])
+        # Remove priority from response
+        for mod in matching_mods:
+            del mod["_priority"]
 
         return jsonify({"success": True, "mods": matching_mods})
     except Exception as e:

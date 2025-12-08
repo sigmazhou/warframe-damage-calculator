@@ -359,6 +359,13 @@ input:focus, select:focus {
     border-radius: 3px;
     color: var(--text-color);
     font-size: 11px;
+    -moz-appearance: textfield;
+}
+
+.riven-stat-value::-webkit-outer-spin-button,
+.riven-stat-value::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .riven-stat-value:disabled {
