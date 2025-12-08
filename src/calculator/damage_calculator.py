@@ -52,10 +52,13 @@ class DamageCalculator:
         self.element_order = element_order or []
         self.final_buff: InGameBuff = in_game_buff + static_buff
 
-        # apply IGB callbacks
-        for callback in self.final_buff.callbacks:
+        # apply IGB callbacks (sorted by priority_group, lower values first)
+        sorted_callbacks = sorted(self.final_buff.callbacks, key=lambda cb: cb.priority_group)
+        for callback in sorted_callbacks:
             if callback.type == CallbackType.IN_GAME_BUFF:
                 callback(self.final_buff)
+            if callback.type == CallbackType.DAMAGE_CALCULATOR:
+                callback(self)
 
         self.combined_elements: Elements = (
             self.final_buff.elements + weapon_stat.elements
@@ -116,7 +119,7 @@ class DamageCalculator:
             * self._get_base()
             * self._get_crit()
             * self._get_faction()
-            * self.in_game_buff.final_multiplier
+            * self.final_buff.final_multiplier
         )
         return per_hit
 
@@ -198,12 +201,15 @@ class DamageCalculator:
         return 1 + self.final_buff.damage
 
     def _get_cc(self) -> float:
-        return self.weapon_stat.critical_chance * (1 + self.final_buff.critical_chance)
+        return (
+            self.weapon_stat.critical_chance * (1 + self.final_buff.critical_chance)
+            + self.final_buff.final_additive_cc
+        )
 
     def _get_cd(self) -> float:
         return (
             self.weapon_stat.critical_damage * (1 + self.final_buff.critical_damage)
-            + self.in_game_buff.final_additive_cd
+            + self.final_buff.final_additive_cd
         )
 
     def _get_crit(self) -> float:
@@ -304,7 +310,7 @@ class DamageCalculator:
             self.weapon_stat.damage
             * self._get_base()
             * self._get_faction()
-            * self.in_game_buff.final_multiplier
+            * self.final_buff.final_multiplier
             * (1 - self.enemy_stat.get_armor_damage_reduction())
         )
         total_base_damage = 0.0
@@ -345,7 +351,7 @@ class DamageCalculator:
                 self.weapon_stat.damage
                 * self._get_base()
                 * self._get_faction()
-                * self.in_game_buff.final_multiplier
+                * self.final_buff.final_multiplier
             )
         element_multiplier = self.final_buff.elements.get_element(element) + 1
         proc_damage = base_damage * element_multiplier * self._get_faction()

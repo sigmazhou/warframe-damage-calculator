@@ -9,11 +9,54 @@
 
             let availableBuffs = [];
             let buildIdCounter = 1;
+            let rivenStats = {};  // Stores riven base stats by weapon type
+
+            /**
+             * Format a stat/mod name for display by replacing underscores with spaces
+             * @param {string} name - The internal name with underscores
+             * @param {boolean} titleCase - Whether to capitalize each word (default: false)
+             * @returns {string} Display name with spaces
+             */
+            function formatDisplayName(name, titleCase = false) {
+                const formatted = name.replace(/_/g, ' ');
+                if (titleCase) {
+                    return formatted.replace(/\b\w/g, l => l.toUpperCase());
+                }
+                return formatted;
+            }
+
+            /**
+             * Get match priority for search (lower = better match)
+             * @param {string} name - The internal name (e.g., "hornet_strike")
+             * @param {string} query - The search query (may contain spaces or underscores)
+             * @returns {number} Match priority: 0 = prefix match, 1 = contains match, -1 = no match
+             */
+            function getSearchMatchPriority(name, query) {
+                const normalizedName = name.toLowerCase();
+                const normalizedQuery = query.toLowerCase();
+                const queryWithUnderscores = normalizedQuery.replace(/ /g, '_');
+                const nameWithSpaces = normalizedName.replace(/_/g, ' ');
+
+                // Check prefix match (highest priority)
+                if (normalizedName.startsWith(queryWithUnderscores) ||
+                    nameWithSpaces.startsWith(normalizedQuery)) {
+                    return 0;
+                }
+
+                // Check contains match (lower priority)
+                if (normalizedName.includes(queryWithUnderscores) ||
+                    nameWithSpaces.includes(normalizedQuery)) {
+                    return 1;
+                }
+
+                return -1; // No match
+            }
 
             loadEnemyTypes();
             loadElementOptions();
             initializeDefaultElements();
             loadAvailableBuffs();
+            loadRivenStats();
 
             // Initialize event listeners for the first build
             const firstBuild = document.querySelector('.build[data-build-id="1"]');
@@ -45,7 +88,7 @@
                 const {
                     clearOnSelect = true,
                     noResultsMessage = 'No results found',
-                    formatDisplay = (buff) => buff.name,
+                    formatDisplay = (buff) => formatDisplayName(buff.name),
                     onInputChange = null
                 } = options;
 
@@ -63,10 +106,12 @@
                         return;
                     }
 
-                    // Filter available buffs
-                    const matchingBuffs = availableBuffs.filter(buff =>
-                        buff.name.toLowerCase().includes(query)
-                    );
+                    // Filter and sort available buffs (prefix matches first, then contains matches)
+                    const matchingBuffs = availableBuffs
+                        .map(buff => ({ buff, priority: getSearchMatchPriority(buff.name, query) }))
+                        .filter(item => item.priority >= 0)
+                        .sort((a, b) => a.priority - b.priority)
+                        .map(item => item.buff);
 
                     // Render results
                     searchResults.innerHTML = '';
@@ -165,7 +210,7 @@
                                     data.mods.forEach(mod => {
                                         const item = document.createElement('div');
                                         item.className = 'search-result-item';
-                                        item.textContent = mod.name;
+                                        item.textContent = formatDisplayName(mod.name);
                                         item.setAttribute('data-mod-id', mod.id);
                                         item.addEventListener('click', function() {
                                             addModToBuild(build, mod.id, mod.name);
@@ -230,13 +275,39 @@
                     });
                 });
 
-                // Reattach riven event listeners (remove button + stat search dropdowns)
+                // Reattach riven event listeners (remove button + stat search dropdowns + roll buttons)
                 build.querySelectorAll('.riven-item').forEach(rivenItem => {
                     reattachRemoveButton(rivenItem, '.remove-mod-btn', () => {
                         selectedMods.removeChild(rivenItem);
                     });
 
-                    // Reattach searchable stat selector listeners
+                    // Reattach roll button event listeners
+                    rivenItem.querySelectorAll('.riven-roll-btn').forEach(btn => {
+                        const newBtn = btn.cloneNode(true);
+                        btn.parentNode.replaceChild(newBtn, btn);
+                        newBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const rollType = this.dataset.rollType;
+                            applyRivenRoll(rivenItem, build, rollType);
+                        });
+                    });
+
+                    // Reattach sign toggle button event listeners
+                    rivenItem.querySelectorAll('.riven-stat-sign-btn').forEach(btn => {
+                        const newBtn = btn.cloneNode(true);
+                        btn.parentNode.replaceChild(newBtn, btn);
+                        newBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const statRow = this.closest('.riven-stat-row');
+                            const isNegative = statRow.dataset.isNegative === 'true';
+                            statRow.dataset.isNegative = (!isNegative).toString();
+                            this.textContent = isNegative ? '+' : '-';
+                        });
+                    });
+
+                    // Reattach searchable stat selector listeners using riven stats
                     rivenItem.querySelectorAll('.riven-stat-search-input').forEach(searchInput => {
                         const index = searchInput.dataset.statIndex;
                         const statRow = rivenItem.querySelector(`.riven-stat-row[data-stat-index="${index}"]`);
@@ -248,13 +319,14 @@
                             searchInput.dataset.selectedStat = '';
                         }
 
-                        // Setup searchable dropdown with riven-specific behavior
-                        setupSearchableDropdown(
+                        // Setup searchable dropdown with riven stats from weapon type
+                        setupRivenStatDropdown(
                             searchInput,
                             searchResults,
-                            (buff, input) => {
-                                input.value = buff.name.replace(/_/g, ' ');
-                                input.dataset.selectedStat = buff.name;
+                            build,
+                            (stat, input) => {
+                                input.value = formatDisplayName(stat.name);
+                                input.dataset.selectedStat = stat.name;
                                 valueInput.disabled = false;
                                 if (!valueInput.value) {
                                     valueInput.value = 0;
@@ -264,9 +336,9 @@
                             {
                                 clearOnSelect: false,
                                 noResultsMessage: 'No stats found',
-                                formatDisplay: (buff) => buff.name.replace(/_/g, ' '),
+                                formatDisplay: (stat) => formatDisplayName(stat.name),
                                 onInputChange: (input, query) => {
-                                    if (input.dataset.selectedStat && input.value !== input.dataset.selectedStat.replace(/_/g, ' ')) {
+                                    if (input.dataset.selectedStat && input.value !== formatDisplayName(input.dataset.selectedStat)) {
                                         input.dataset.selectedStat = '';
                                         valueInput.disabled = true;
                                         valueInput.value = '';
@@ -354,6 +426,273 @@
                         }
                     })
                     .catch(error => console.error('Load available buffs failed:', error));
+            }
+
+            function loadRivenStats() {
+                fetch('/api/riven-stats')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            rivenStats = data.riven_stats;
+                            // Populate weapon type dropdowns
+                            const weaponTypes = Object.keys(rivenStats);
+                            const weaponTypeSelects = document.querySelectorAll('.weapon-type-select');
+                            weaponTypeSelects.forEach(select => {
+                                // Save current value before repopulating (default to 'rifle')
+                                const currentValue = select.value || 'rifle';
+                                select.innerHTML = '';
+                                weaponTypes.forEach(type => {
+                                    const option = document.createElement('option');
+                                    option.value = type;
+                                    option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+                                    select.appendChild(option);
+                                });
+                                // Restore previous value or default to rifle
+                                select.value = currentValue;
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Load riven stats failed:', error));
+            }
+
+            /**
+             * Get available riven stats for the selected weapon type in a build
+             * @param {HTMLElement} build - The build element
+             * @returns {Array} Array of stat objects with name property
+             */
+            function getAvailableRivenStatsForBuild(build) {
+                const weaponType = build.querySelector('.weapon-type-select').value;
+                if (!weaponType || !rivenStats[weaponType]) {
+                    return [];
+                }
+                // Convert riven stats object to array of {name: statName} objects
+                return Object.keys(rivenStats[weaponType]).map(statName => ({ name: statName }));
+            }
+
+            /**
+             * Setup a searchable dropdown for riven stats (uses weapon-type-specific stats)
+             * @param {HTMLElement} searchInput - The input element for searching
+             * @param {HTMLElement} searchResults - The container for search results
+             * @param {HTMLElement} build - The build element containing the weapon type selector
+             * @param {Function} onSelect - Callback when an item is selected
+             * @param {Object} options - Configuration options
+             */
+            function setupRivenStatDropdown(searchInput, searchResults, build, onSelect, options = {}) {
+                const {
+                    clearOnSelect = false,
+                    noResultsMessage = 'No stats found',
+                    formatDisplay = (stat) => formatDisplayName(stat.name),
+                    onInputChange = null
+                } = options;
+
+                // Search functionality
+                searchInput.addEventListener('input', function() {
+                    const query = this.value.trim().toLowerCase();
+
+                    // Allow custom input change handling
+                    if (onInputChange) {
+                        onInputChange(this, query);
+                    }
+
+                    if (query.length < 1) {
+                        searchResults.style.display = 'none';
+                        return;
+                    }
+
+                    // Get available stats based on weapon type
+                    const availableStats = getAvailableRivenStatsForBuild(build);
+
+                    if (availableStats.length === 0) {
+                        searchResults.innerHTML = '<div class="search-result-item">Select weapon type first</div>';
+                        searchResults.style.display = 'block';
+                        return;
+                    }
+
+                    // Filter and sort stats (prefix matches first, then contains matches)
+                    const matchingStats = availableStats
+                        .map(stat => ({ stat, priority: getSearchMatchPriority(stat.name, query) }))
+                        .filter(item => item.priority >= 0)
+                        .sort((a, b) => a.priority - b.priority)
+                        .map(item => item.stat);
+
+                    // Render results
+                    searchResults.innerHTML = '';
+                    if (matchingStats.length === 0) {
+                        searchResults.innerHTML = `<div class="search-result-item">${noResultsMessage}</div>`;
+                    } else {
+                        matchingStats.forEach(stat => {
+                            const item = document.createElement('div');
+                            item.className = 'search-result-item';
+                            item.textContent = formatDisplay(stat);
+                            item.addEventListener('click', function() {
+                                onSelect(stat, searchInput);
+                                if (clearOnSelect) {
+                                    searchInput.value = '';
+                                }
+                                searchResults.style.display = 'none';
+                            });
+                            searchResults.appendChild(item);
+                        });
+                    }
+                    searchResults.style.display = 'block';
+                });
+
+                // Hide results when clicking outside
+                searchInput.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        searchResults.style.display = 'none';
+                    }, 200);
+                });
+
+                // Show results when focusing if there's a query
+                searchInput.addEventListener('focus', function() {
+                    if (this.value.trim().length >= 1) {
+                        this.dispatchEvent(new Event('input'));
+                    }
+                });
+            }
+
+            /**
+             * Calculate riven stat value based on roll type, stat configuration, and disposition
+             *
+             * Riven multipliers based on stat count:
+             * - 2 positive 0 negative: 0.99 * base
+             * - 2 positive 1 negative: 1.2375 for pos, -0.495 for neg
+             * - 3 positive 0 negative: 0.75 for pos
+             * - 3 positive 1 negative: 0.9375 for pos, -0.75 for neg
+             *
+             * Roll ranges:
+             * - Min: 0.9 * avg
+             * - Max: 1.1 * avg
+             *
+             * @param {string} statName - The riven stat name (e.g., heat_damage, critical_chance)
+             * @param {string} weaponType - The weapon type (rifle, shotgun, etc.)
+             * @param {number} disposition - The weapon's riven disposition
+             * @param {number} positiveCount - Number of positive stats (2 or 3)
+             * @param {boolean} hasNegative - Whether there's a negative stat
+             * @param {boolean} isNegative - Whether this stat is the negative one
+             * @param {string} rollType - 'min', 'avg', or 'max'
+             * @returns {number|null} The calculated stat value or null if not available
+             */
+            function calculateRivenStatValue(statName, weaponType, disposition, positiveCount, hasNegative, isNegative, rollType) {
+                if (!rivenStats[weaponType]) return null;
+
+                const baseValue = rivenStats[weaponType][statName];
+                if (baseValue === undefined) return null;
+
+                // Determine the multiplier based on stat configuration
+                let multiplier;
+                if (isNegative) {
+                    // Negative stat multipliers
+                    if (positiveCount === 2 && hasNegative) {
+                        multiplier = -0.495;
+                    } else if (positiveCount === 3 && hasNegative) {
+                        multiplier = -0.75;
+                    } else {
+                        return null; // Invalid configuration for negative
+                    }
+                } else {
+                    // Positive stat multipliers
+                    if (positiveCount === 2 && !hasNegative) {
+                        multiplier = 0.99;
+                    } else if (positiveCount === 2 && hasNegative) {
+                        multiplier = 1.2375;
+                    } else if (positiveCount === 3 && !hasNegative) {
+                        multiplier = 0.75;
+                    } else if (positiveCount === 3 && hasNegative) {
+                        multiplier = 0.9375;
+                    } else {
+                        return null; // Invalid configuration
+                    }
+                }
+
+                // Calculate average value (base * multiplier * disposition)
+                const avgValue = baseValue * multiplier * disposition;
+
+                // Apply roll type modifier
+                switch (rollType) {
+                    case 'min':
+                        return avgValue * 0.9;
+                    case 'max':
+                        return avgValue * 1.1;
+                    case 'avg':
+                    default:
+                        return avgValue;
+                }
+            }
+
+            /**
+             * Apply roll values to all stats in a riven item
+             * @param {HTMLElement} rivenItem - The riven item DOM element
+             * @param {HTMLElement} build - The build containing the riven
+             * @param {string} rollType - 'min', 'avg', or 'max'
+             */
+            function applyRivenRoll(rivenItem, build, rollType) {
+                const weaponType = build.querySelector('.weapon-type-select').value;
+                const disposition = parseFloat(build.querySelector('.weapon-disposition-input').value) || 1.0;
+
+                if (!weaponType) {
+                    alert('Please select a weapon type first');
+                    return;
+                }
+
+                // Collect all selected stats to determine configuration
+                const statRows = rivenItem.querySelectorAll('.riven-stat-row');
+                const selectedStats = [];
+
+                statRows.forEach(row => {
+                    const searchInput = row.querySelector('.riven-stat-search-input');
+                    const valueInput = row.querySelector('.riven-stat-value');
+                    const statName = searchInput.dataset.selectedStat;
+
+                    if (statName) {
+                        // Check if it's a negative stat using the data attribute
+                        const isNegative = row.dataset.isNegative === 'true';
+                        selectedStats.push({
+                            row: row,
+                            statName: statName,
+                            searchInput: searchInput,
+                            valueInput: valueInput,
+                            isNegative: isNegative
+                        });
+                    }
+                });
+
+                if (selectedStats.length === 0) {
+                    alert('Please select at least one riven stat');
+                    return;
+                }
+
+                // Count positives and negatives
+                const negativeCount = selectedStats.filter(s => s.isNegative).length;
+                const positiveCount = selectedStats.length - negativeCount;
+
+                // Validate configuration (must have 2-3 positives and 0-1 negatives)
+                if (positiveCount < 2 || positiveCount > 3 || negativeCount > 1) {
+                    alert('Invalid riven configuration. Must have 2-3 positive stats and 0-1 negative stat.');
+                    return;
+                }
+
+                const hasNegative = negativeCount > 0;
+
+                // Calculate and apply values for each stat
+                selectedStats.forEach(stat => {
+                    const value = calculateRivenStatValue(
+                        stat.statName,
+                        weaponType,
+                        disposition,
+                        positiveCount,
+                        hasNegative,
+                        stat.isNegative,
+                        rollType
+                    );
+
+                    if (value !== null) {
+                        // Round to 4 decimal places for display
+                        stat.valueInput.value = Math.round(value * 10000) / 10000;
+                        stat.valueInput.disabled = false;
+                    }
+                });
             }
 
             function loadElementOptions() {
@@ -444,8 +783,10 @@
                 const selectedMods = build.querySelector('.selected-mods-container');
                 const modItem = document.createElement('div');
                 modItem.className = 'mod-item';
+                modItem.dataset.modId = modId;
+                const displayName = formatDisplayName(modName);
                 modItem.innerHTML = `
-                    <span class="mod-name">${modName}</span>
+                    <span class="mod-name">${displayName}</span>
                     <button class="remove-mod-btn" data-mod-id="${modId}">X</button>
                 `;
                 modItem.querySelector('.remove-mod-btn').addEventListener('click', function() {
@@ -478,8 +819,9 @@
                     defaultValue = 1.0;
                 }
 
+                const displayName = formatDisplayName(buffName);
                 buffItem.innerHTML = `
-                    <span class="mod-name" style="flex: 1;">${buffName}</span>
+                    <span class="mod-name" style="flex: 1;">${displayName}</span>
                     <input type="number" class="buff-value-input" value="${defaultValue}" step="${step}" style="width: 60px; padding: 2px 4px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 3px; color: var(--text-color); font-size: 11px;">
                     <button class="remove-buff-btn">X</button>
                 `;
@@ -501,19 +843,6 @@
                 build.dataset.rivenCounter = rivenCounter;
                 const rivenId = `riven_${rivenCounter}`;
 
-                // Use availableBuffs for riven stat options
-                const rivenStatOptions = [
-                    { value: '', label: '-- Select Stat --' }
-                ];
-
-                // Add all available buffs as options
-                availableBuffs.forEach(buff => {
-                    rivenStatOptions.push({
-                        value: buff.name,
-                        label: buff.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-                    });
-                });
-
                 // Create riven item
                 const rivenItem = document.createElement('div');
                 rivenItem.className = 'mod-item riven-item';
@@ -524,6 +853,11 @@
                 let rivenHTML = `
                     <div class="riven-header">
                         <span class="mod-name" style="font-weight: bold; color: var(--accent-color);">Riven Mod (${rivenId})</span>
+                        <div class="riven-roll-buttons">
+                            <button type="button" class="riven-roll-btn" data-roll-type="min" title="Min Roll (0.9 × Avg)">Mi</button>
+                            <button type="button" class="riven-roll-btn" data-roll-type="avg" title="Average Roll">Av</button>
+                            <button type="button" class="riven-roll-btn" data-roll-type="max" title="Max Roll (1.1 × Avg)">Ma</button>
+                        </div>
                         <button class="remove-mod-btn" data-mod-id="${rivenId}">X</button>
                     </div>
                     <div class="riven-stats-grid">
@@ -532,7 +866,8 @@
                 // Create 4 stat rows with searchable inputs
                 for (let i = 0; i < 4; i++) {
                     rivenHTML += `
-                        <div class="riven-stat-row" data-stat-index="${i}">
+                        <div class="riven-stat-row" data-stat-index="${i}" data-is-negative="false">
+                            <button type="button" class="riven-stat-sign-btn" data-stat-index="${i}" title="Toggle positive/negative">+</button>
                             <div class="riven-stat-search">
                                 <input type="text" class="riven-stat-search-input"
                                        placeholder="Search stat..." data-stat-index="${i}">
@@ -553,50 +888,79 @@
                 setupBuildEventListeners(build);
             }
 
+            /**
+             * Collect all select values from a build (cloneNode doesn't preserve them)
+             * @param {HTMLElement} build - The build element
+             * @returns {Map} Map of selector -> value pairs
+             */
+            function collectSelectValues(build) {
+                const values = new Map();
+                build.querySelectorAll('select').forEach(select => {
+                    // Use a unique identifier based on class or nearby context
+                    const key = select.className || select.name || select.id;
+                    if (key) {
+                        values.set(key, select.value);
+                    }
+                });
+                return values;
+            }
+
+            /**
+             * Restore select values to a build
+             * @param {HTMLElement} build - The build element
+             * @param {Map} values - Map of selector -> value pairs
+             */
+            function restoreSelectValues(build, values) {
+                build.querySelectorAll('select').forEach(select => {
+                    const key = select.className || select.name || select.id;
+                    if (key && values.has(key)) {
+                        select.value = values.get(key);
+                    }
+                });
+            }
+
+            /**
+             * Sync riven counter based on existing rivens in build
+             * @param {HTMLElement} build - The build element
+             */
+            function syncRivenCounter(build) {
+                let maxRivenId = 0;
+                build.querySelectorAll('.riven-item').forEach(riven => {
+                    const rivenId = riven.dataset.rivenId;
+                    if (rivenId && rivenId.startsWith('riven_')) {
+                        const num = parseInt(rivenId.replace('riven_', ''));
+                        if (num > maxRivenId) maxRivenId = num;
+                    }
+                });
+                build.dataset.rivenCounter = maxRivenId.toString();
+            }
+
             function addBuild() {
                 buildIdCounter++;
                 const container = document.getElementById('builds-container');
                 const lastBuild = container.querySelector('.build:last-child');
 
-                // TODO: handle selected values in a better way
-                // Save enemy data from last build (cloneNode doesn't preserve select values)
-                const enemyFaction = lastBuild.querySelector('.enemy-faction-select').value;
-                const enemyType = lastBuild.querySelector('.enemy-type-select').value;
+                // Save select values (cloneNode doesn't preserve them)
+                const selectValues = collectSelectValues(lastBuild);
 
-                // Clone the last build
+                // Clone the build
                 const newBuild = lastBuild.cloneNode(true);
                 newBuild.setAttribute('data-build-id', buildIdCounter);
 
-                // Restore enemy data to the new build only
-                newBuild.querySelector('.enemy-faction-select').value = enemyFaction;
-                newBuild.querySelector('.enemy-type-select').value = enemyType;
+                // Restore select values
+                restoreSelectValues(newBuild, selectValues);
 
-                // Preserve riven counter for cloned rivens
-                // Scan cloned rivens to find max ID and set counter accordingly
-                const clonedRivens = newBuild.querySelectorAll('.riven-item');
-                let maxRivenId = 0;
-                clonedRivens.forEach(riven => {
-                    const rivenId = riven.dataset.rivenId;
-                    if (rivenId && rivenId.startsWith('riven_')) {
-                        const rivenNum = parseInt(rivenId.replace('riven_', ''));
-                        if (rivenNum > maxRivenId) {
-                            maxRivenId = rivenNum;
-                        }
-                    }
-                });
-                newBuild.dataset.rivenCounter = maxRivenId.toString();
+                // Sync riven counter based on cloned rivens
+                syncRivenCounter(newBuild);
 
                 // Update build title
-                const titleInput = newBuild.querySelector('.build-title');
-                titleInput.value = `Build ${buildIdCounter}`;
+                newBuild.querySelector('.build-title').value = `Build ${buildIdCounter}`;
 
                 // Attach remove button listener
                 const removeBtn = newBuild.querySelector('.remove-build-btn');
-                removeBtn.addEventListener('click', function() {
-                    removeBuild(newBuild);
-                });
+                removeBtn.addEventListener('click', () => removeBuild(newBuild));
 
-                // Setup all event listeners for the new build (includes cloned items)
+                // Setup all event listeners for the new build (handles cloned items)
                 setupBuildEventListeners(newBuild);
 
                 container.appendChild(newBuild);
@@ -604,8 +968,9 @@
                 // Populate dropdowns for the new build
                 loadEnemyTypes();
                 loadElementOptions();
+                loadRivenStats();
 
-                // Show remove button on all builds if there's more than one
+                // Update remove button visibility
                 updateRemoveButtons();
             }
 
@@ -684,8 +1049,15 @@
                             const statType = searchInput.dataset.selectedStat;
                             if (statType) {
                                 const index = searchInput.dataset.statIndex;
+                                const statRow = rivenItem.querySelector(`.riven-stat-row[data-stat-index="${index}"]`);
                                 const valueInput = rivenItem.querySelector(`.riven-stat-value[data-stat-index="${index}"]`);
-                                const value = parseFloat(valueInput.value || 0);
+                                let value = parseFloat(valueInput.value || 0);
+
+                                // If stat is marked as negative, ensure value is negative
+                                const isNegative = statRow && statRow.dataset.isNegative === 'true';
+                                if (isNegative) {
+                                    value = -Math.abs(value);
+                                }
 
                                 // Store as key-value pairs like in-game buffs
                                 rivenStats[statType] = value;
@@ -822,7 +1194,7 @@
 
                 // Helper function to format label names
                 function formatLabel(key) {
-                    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    return formatDisplayName(key, true);
                 }
 
                 // === DAMAGE SECTION ===

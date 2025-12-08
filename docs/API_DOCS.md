@@ -175,7 +175,7 @@ Returns all available in-game buff fields with flattened faction and element fie
       "default": 0.0
     },
     {
-      "name": "element_heat",
+      "name": "heat_damage",
       "type": "float",
       "default": 0.0
     }
@@ -224,7 +224,7 @@ Main endpoint - calculates damage based on weapon stats, mods, rivens, enemy typ
     "riven_1": {
       "damage": 1.15,
       "critical_chance": 0.8,
-      "element_heat": 1.2
+      "heat_damage": 1.2
     }
   },
   "enemy": {
@@ -238,7 +238,7 @@ Main endpoint - calculates damage based on weapon stats, mods, rivens, enemy typ
     "attack_speed": 0.6,
     "num_debuffs": 2,
     "final_multiplier": 1.0,
-    "element_toxin": 1.0
+    "toxin_damage": 1.0
   },
   "simulation": {
     "duration": 10.0,
@@ -275,7 +275,7 @@ Main endpoint - calculates damage based on weapon stats, mods, rivens, enemy typ
 
 Riven mods use flat key format with prefixes:
 - Basic stats: `damage`, `critical_chance`, `critical_damage`, `multishot`, `attack_speed`, `status_chance`
-- Elements: `element_heat`, `element_cold`, `element_toxin`, etc.
+- Elements: `heat_damage`, `cold_damage`, `toxin_damage`, etc.
 - Factions: `faction_grineer`, `faction_corpus`, etc.
 
 **In-Game Buffs:**
@@ -288,7 +288,7 @@ Riven mods use flat key format with prefixes:
 | attack_speed | float | Additional attack speed |
 | num_debuffs | int | Number of debuffs on enemy |
 | final_multiplier | float | Final damage multiplier |
-| element_* | float | Element bonuses (element_heat, etc.) |
+| {element}_damage | float | Element bonuses (heat_damage, etc.) |
 | faction_* | float | Faction bonuses (faction_grineer, etc.) |
 
 **Response:**
@@ -304,7 +304,9 @@ Riven mods use flat key format with prefixes:
   "stats": {
     "base_damage_multiplier": 3.65,
     "multishot": 2.2,
-    "critical_multiplier": 8.4,
+    "critical_chance": 1.55,
+    "critical_damage": 4.2,
+    "combined_crit_multiplier": 5.96,
     "attack_speed": 11.6,
     "status_chance": 0.95,
     "elemental_damage_multiplier": 4.2

@@ -58,10 +58,18 @@ def flatten_buff_fields(buff_fields):
                 )
         elif field["name"] == "elements":
             # Get element names from Elements dataclass
+            # Format: {element}_damage (e.g., heat_damage, cold_damage)
+            # For standalone elements: {element}_damage_standalone (e.g., heat_damage_standalone)
             element_names = [f.name for f in fields(Elements)]
             for element in element_names:
+                if element.endswith("_standalone"):
+                    # Convert heat_standalone -> heat_damage_standalone
+                    base_element = element.replace("_standalone", "")
+                    display_name = f"{base_element}_damage_standalone"
+                else:
+                    display_name = f"{element}_damage"
                 flattened.append(
-                    {"name": f"element_{element}", "type": "float", "default": 0.0}
+                    {"name": display_name, "type": "float", "default": 0.0}
                 )
         elif field["name"] != "callbacks":
             # Keep regular fields (exclude callbacks)
@@ -108,13 +116,40 @@ def get_available_mods():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+def get_search_match_priority(name: str, query: str) -> int:
+    """
+    Get match priority for search (lower = better match).
+
+    Args:
+        name: The internal mod name (e.g., "hornet_strike")
+        query: The search query (may contain spaces or underscores)
+
+    Returns:
+        Match priority: 0 = prefix match, 1 = contains match, -1 = no match
+    """
+    normalized_name = name.lower()
+    normalized_query = query.lower()
+    query_with_underscores = normalized_query.replace(" ", "_")
+    name_with_spaces = normalized_name.replace("_", " ")
+
+    # Check prefix match (highest priority)
+    if normalized_name.startswith(query_with_underscores) or name_with_spaces.startswith(normalized_query):
+        return 0
+
+    # Check contains match (lower priority)
+    if query_with_underscores in normalized_name or normalized_query in name_with_spaces:
+        return 1
+
+    return -1  # No match
+
+
 @app.route("/api/search-mods", methods=["GET"])
 def search_mods():
     """
-    Search for mods by name.
+    Search for mods by name. Supports both spaces and underscores in query.
 
     Query params:
-        q: Search query string
+        q: Search query string (e.g., "hornet strike" or "hornet_strike")
 
     Returns:
         JSON array of matching mods
@@ -129,15 +164,23 @@ def search_mods():
         matching_mods = []
 
         for mod_name in mod_names:
-            if query in mod_name.lower():
+            priority = get_search_match_priority(mod_name, query)
+            if priority >= 0:
                 mod_info = parser.get_mod_info(mod_name)
                 matching_mods.append(
                     {
                         "id": mod_name,
                         "name": mod_name,
                         "max_level": mod_info.get("max_level", 0),
+                        "_priority": priority,  # For sorting
                     }
                 )
+
+        # Sort by priority (prefix matches first)
+        matching_mods.sort(key=lambda x: x["_priority"])
+        # Remove priority from response
+        for mod in matching_mods:
+            del mod["_priority"]
 
         return jsonify({"success": True, "mods": matching_mods})
     except Exception as e:
@@ -176,11 +219,35 @@ def get_enemy_types():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/api/riven-stats", methods=["GET"])
+def get_riven_stats():
+    """
+    Get riven base stats by weapon type.
+
+    Returns:
+        JSON object with weapon types as keys and their riven stats as values
+    """
+    try:
+        import orjson
+        import os
+
+        # Load riven stats from file
+        riven_stats_path = os.path.join(
+            os.path.dirname(__file__), "..", "data", "riven_stats.txt"
+        )
+        with open(riven_stats_path, "rb") as f:
+            riven_stats = orjson.loads(f.read())
+
+        return jsonify({"success": True, "riven_stats": riven_stats})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/ingame-buffs", methods=["GET"])
 def get_ingame_buffs():
     """
     Get list of available in-game buff fields from InGameBuff dataclass.
-    Returns flattened fields with faction_* and element_* expanded.
+    Returns flattened fields with faction_* and {element}_damage expanded.
 
     Returns:
         JSON object with buff field names and their types
@@ -241,7 +308,7 @@ def calculate_damage():
                 "riven_1": {
                     "damage": 2.15,
                     "critical_chance": 1.38,
-                    "element_heat": 1.20
+                    "heat_damage": 1.20
                 }
             },
             "enemy": {
@@ -379,10 +446,13 @@ def calculate_damage():
         multishot = calculator._get_ms()
         attack_speed = calculator._get_as()
         status_chance = calculator._get_sc()
+        crit_chance = calculator._get_cc()
+        crit_damage = calculator._get_cd()
 
         logger.info(
             f"Intermediate calculations - base: {base_damage}, crit_mult: {crit_multiplier}, "
-            f"multishot: {multishot}, attack_speed: {attack_speed}, status_chance: {status_chance}"
+            f"multishot: {multishot}, attack_speed: {attack_speed}, status_chance: {status_chance}, "
+            f"crit_chance: {crit_chance}, crit_damage: {crit_damage}"
         )
 
         logger.info("=== Calculation Complete ===")
@@ -412,7 +482,9 @@ def calculate_damage():
             [
                 ("base_damage_multiplier", base_damage),
                 ("multishot", multishot),
-                ("critical_multiplier", crit_multiplier),
+                ("critical_chance", crit_chance),
+                ("critical_damage", crit_damage),
+                ("combined_crit_multiplier", crit_multiplier),
                 ("attack_speed", attack_speed),
                 ("status_chance", status_chance),
                 ("elemental_damage_multiplier", elem_total),
