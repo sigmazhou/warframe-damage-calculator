@@ -17,19 +17,19 @@
   },
   "primed_cleanse_grineer": {
     "max_level": 10,
-    "damage_vs_grineer": 0.55
+    "faction_grineer": 0.55
   },
   "primed_cleanse_corpus": {
     "max_level": 10,
-    "damage_vs_corpus": 0.55
+    "faction_corpus": 0.55
   },
   "primed_cleanse_infested": {
     "max_level": 10,
-    "damage_vs_infested": 0.55
+    "faction_infested": 0.55
   },
   "primed_cleanse_orokin": {
     "max_level": 10,
-    "damage_vs_corrupted": 0.55
+    "faction_corrupted": 0.55
   },
   "primed_tactical_pump": {
     "max_level": 10,
@@ -244,15 +244,15 @@
   },
   "primed_bane_of_grineer": {
     "max_level": 10,
-    "damage_vs_grineer": 0.55
+    "faction_grineer": 0.55
   },
   "primed_bane_of_corpus": {
     "max_level": 10,
-    "damage_vs_corpus": 0.55
+    "faction_corpus": 0.55
   },
   "primed_bane_of_infested": {
     "max_level": 10,
-    "damage_vs_infested": 0.55
+    "faction_infested": 0.55
   },
   "hydraulic_crosshairs": {
     "max_level": 5,

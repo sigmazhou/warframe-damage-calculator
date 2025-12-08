@@ -1,4 +1,4 @@
-import json
+import orjson
 from dataclasses import fields
 from pathlib import Path
 from src.calculator.wf_dataclasses import StaticBuff, InGameBuff, Elements
@@ -35,14 +35,21 @@ ELEMENT_MAPPING = {
     "viral_damage": "viral",
     "void_damage": "void",
     "tau_damage": "tau",
+    # Standalone element mappings (for in-game buffs)
+    # Format: {element}_damage_standalone -> {element}_standalone
+    "cold_damage_standalone": "cold_standalone",
+    "electricity_damage_standalone": "electricity_standalone",
+    "heat_damage_standalone": "heat_standalone",
+    "toxin_damage_standalone": "toxin_standalone",
 }
 
 # Mapping for faction damage (faction)
+# Unified format: faction_{faction}
 FACTION_MAPPING = {
-    "damage_vs_grineer": "grineer",
-    "damage_vs_corpus": "corpus",
-    "damage_vs_infested": "infested",
-    "damage_vs_corrupted": "corrupted",
+    "faction_grineer": "grineer",
+    "faction_corpus": "corpus",
+    "faction_infested": "infested",
+    "faction_corrupted": "corrupted",
 }
 
 
@@ -61,8 +68,8 @@ class ModParser:
 
     def _load_mod_data(self) -> dict:
         """Load mod data from JSON file."""
-        with open(self.mod_data_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with open(self.mod_data_path, "rb") as f:
+            return orjson.loads(f.read())
 
     def parse_mods_and_stats(
         self, mod_names: list[str], in_game_stats: dict = None, rivens: dict = None
@@ -83,8 +90,8 @@ class ModParser:
                 - element_order: list (order of elements for in-game buffs)
             rivens: Dictionary of riven data (optional)
                 - Keys are riven IDs (e.g., "riven_1")
-                - Values are dicts with stat key-value pairs (same format as in-game buffs)
-                  Example: {"damage": 2.15, "element_heat": 1.20}
+                - Values are dicts with stat key-value pairs
+                  Example: {"damage": 2.15, "heat_damage": 1.20, "faction_grineer": 0.5}
 
         Returns:
             Tuple of (InGameBuff, element_order_from_mods, element_order_from_igb)
@@ -199,7 +206,7 @@ class ModParser:
         Apply stats (from mods or in-game sources) to InGameBuff.
 
         This unified method handles both:
-        - Mod stats with mapped keys (e.g., "damage_vs_grineer" -> "grineer")
+        - Mod stats with mapped keys (e.g., "faction_grineer" -> "grineer")
         - In-game stats with direct keys and nested dicts (e.g., "elements": {...})
 
         Args:
@@ -256,13 +263,8 @@ class ModParser:
                 for faction_key, faction_value in value.items():
                     self._add_faction_to_buff(in_game_buff, faction_key, faction_value)
 
-            # Handle riven-style element stats (element_heat, element_cold, etc.)
-            elif stat_key.startswith("element_"):
-                element_name = stat_key.replace("element_", "")
-                if self._add_element_to_buff(in_game_buff, element_name, value):
-                    element_order.append(element_name)
-
-            # Handle riven-style faction stats (faction_grineer, faction_corpus, etc.)
+            # Handle faction stats (faction_grineer, faction_corpus, etc.)
+            # Used by mods, rivens, and in-game buffs
             elif stat_key.startswith("faction_"):
                 faction_name = stat_key.replace("faction_", "")
                 self._add_faction_to_buff(in_game_buff, faction_name, value)

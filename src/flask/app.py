@@ -58,10 +58,18 @@ def flatten_buff_fields(buff_fields):
                 )
         elif field["name"] == "elements":
             # Get element names from Elements dataclass
+            # Format: {element}_damage (e.g., heat_damage, cold_damage)
+            # For standalone elements: {element}_damage_standalone (e.g., heat_damage_standalone)
             element_names = [f.name for f in fields(Elements)]
             for element in element_names:
+                if element.endswith("_standalone"):
+                    # Convert heat_standalone -> heat_damage_standalone
+                    base_element = element.replace("_standalone", "")
+                    display_name = f"{base_element}_damage_standalone"
+                else:
+                    display_name = f"{element}_damage"
                 flattened.append(
-                    {"name": f"element_{element}", "type": "float", "default": 0.0}
+                    {"name": display_name, "type": "float", "default": 0.0}
                 )
         elif field["name"] != "callbacks":
             # Keep regular fields (exclude callbacks)
@@ -176,11 +184,35 @@ def get_enemy_types():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/api/riven-stats", methods=["GET"])
+def get_riven_stats():
+    """
+    Get riven base stats by weapon type.
+
+    Returns:
+        JSON object with weapon types as keys and their riven stats as values
+    """
+    try:
+        import orjson
+        import os
+
+        # Load riven stats from file
+        riven_stats_path = os.path.join(
+            os.path.dirname(__file__), "..", "data", "riven_stats.txt"
+        )
+        with open(riven_stats_path, "rb") as f:
+            riven_stats = orjson.loads(f.read())
+
+        return jsonify({"success": True, "riven_stats": riven_stats})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/ingame-buffs", methods=["GET"])
 def get_ingame_buffs():
     """
     Get list of available in-game buff fields from InGameBuff dataclass.
-    Returns flattened fields with faction_* and element_* expanded.
+    Returns flattened fields with faction_* and {element}_damage expanded.
 
     Returns:
         JSON object with buff field names and their types
@@ -241,7 +273,7 @@ def calculate_damage():
                 "riven_1": {
                     "damage": 2.15,
                     "critical_chance": 1.38,
-                    "element_heat": 1.20
+                    "heat_damage": 1.20
                 }
             },
             "enemy": {
