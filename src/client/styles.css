@@ -278,9 +278,9 @@ input:focus, select:focus {
 }
 
 .riven-stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .riven-stat-row {
@@ -371,6 +371,12 @@ input:focus, select:focus {
 .riven-stat-value:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.riven-roll-percent {
+    font-size: 10px;
+    min-width: 40px;
+    text-align: right;
 }
 
 .element-list {

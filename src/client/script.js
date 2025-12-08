@@ -74,21 +74,22 @@
             updateRemoveButtons();
 
             /**
-             * Setup a searchable dropdown for buffs/stats
+             * Setup a searchable dropdown for any data source
              * @param {HTMLElement} searchInput - The input element for searching
              * @param {HTMLElement} searchResults - The container for search results
-             * @param {Function} onSelect - Callback when an item is selected (receives buff object, searchInput)
+             * @param {Function} getItems - Function that returns array of items with 'name' property
+             * @param {Function} onSelect - Callback when an item is selected (receives item, searchInput)
              * @param {Object} options - Configuration options
              * @param {boolean} options.clearOnSelect - Clear input after selection (default: true)
              * @param {string} options.noResultsMessage - Message when no results (default: 'No results found')
-             * @param {Function} options.formatDisplay - Function to format display text (default: buff.name)
+             * @param {Function} options.formatDisplay - Function to format display text (default: item.name)
              * @param {Function} options.onInputChange - Called before filtering, can modify behavior (optional)
              */
-            function setupSearchableDropdown(searchInput, searchResults, onSelect, options = {}) {
+            function setupSearchableDropdown(searchInput, searchResults, getItems, onSelect, options = {}) {
                 const {
                     clearOnSelect = true,
                     noResultsMessage = 'No results found',
-                    formatDisplay = (buff) => formatDisplayName(buff.name),
+                    formatDisplay = (item) => formatDisplayName(item.name),
                     onInputChange = null
                 } = options;
 
@@ -106,30 +107,39 @@
                         return;
                     }
 
-                    // Filter and sort available buffs (prefix matches first, then contains matches)
-                    const matchingBuffs = availableBuffs
-                        .map(buff => ({ buff, priority: getSearchMatchPriority(buff.name, query) }))
-                        .filter(item => item.priority >= 0)
+                    // Get available items from data source
+                    const items = getItems();
+
+                    if (items.length === 0) {
+                        searchResults.innerHTML = `<div class="search-result-item">${noResultsMessage}</div>`;
+                        searchResults.style.display = 'block';
+                        return;
+                    }
+
+                    // Filter and sort items (prefix matches first, then contains matches)
+                    const matchingItems = items
+                        .map(item => ({ item, priority: getSearchMatchPriority(item.name, query) }))
+                        .filter(entry => entry.priority >= 0)
                         .sort((a, b) => a.priority - b.priority)
-                        .map(item => item.buff);
+                        .map(entry => entry.item);
 
                     // Render results
                     searchResults.innerHTML = '';
-                    if (matchingBuffs.length === 0) {
+                    if (matchingItems.length === 0) {
                         searchResults.innerHTML = `<div class="search-result-item">${noResultsMessage}</div>`;
                     } else {
-                        matchingBuffs.forEach(buff => {
-                            const item = document.createElement('div');
-                            item.className = 'search-result-item';
-                            item.textContent = formatDisplay(buff);
-                            item.addEventListener('click', function() {
-                                onSelect(buff, searchInput);
+                        matchingItems.forEach(item => {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'search-result-item';
+                            resultItem.textContent = formatDisplay(item);
+                            resultItem.addEventListener('click', function() {
+                                onSelect(item, searchInput);
                                 if (clearOnSelect) {
                                     searchInput.value = '';
                                 }
                                 searchResults.style.display = 'none';
                             });
-                            searchResults.appendChild(item);
+                            searchResults.appendChild(resultItem);
                         });
                     }
                     searchResults.style.display = 'block';
@@ -234,6 +244,7 @@
                     setupSearchableDropdown(
                         buffSearch,
                         buffSearchResults,
+                        () => availableBuffs,
                         (buff) => addBuffToBuild(build, buff.name, buff.type),
                         {
                             clearOnSelect: true,
@@ -289,7 +300,7 @@
                             e.preventDefault();
                             e.stopPropagation();
                             const rollType = this.dataset.rollType;
-                            applyRivenRoll(rivenItem, build, rollType);
+                            generateRivenRoll(rivenItem, build, rollType);
                         });
                     });
 
@@ -303,6 +314,7 @@
                             const statRow = this.closest('.riven-stat-row');
                             const isNegative = statRow.dataset.isNegative === 'true';
                             statRow.dataset.isNegative = (!isNegative).toString();
+                            updateAllRivenRollPercents(rivenItem, build);
                             this.textContent = isNegative ? '+' : '-';
                         });
                     });
@@ -319,11 +331,16 @@
                             searchInput.dataset.selectedStat = '';
                         }
 
+                        // Reattach value input listener for roll percentage update
+                        valueInput.addEventListener('input', function() {
+                            updateAllRivenRollPercents(rivenItem, build);
+                        });
+
                         // Setup searchable dropdown with riven stats from weapon type
-                        setupRivenStatDropdown(
+                        setupSearchableDropdown(
                             searchInput,
                             searchResults,
-                            build,
+                            () => getAvailableRivenStatsForBuild(build),
                             (stat, input) => {
                                 input.value = formatDisplayName(stat.name);
                                 input.dataset.selectedStat = stat.name;
@@ -331,17 +348,18 @@
                                 if (!valueInput.value) {
                                     valueInput.value = 0;
                                 }
+                                updateAllRivenRollPercents(rivenItem, build);
                                 valueInput.focus();
                             },
                             {
                                 clearOnSelect: false,
                                 noResultsMessage: 'No stats found',
-                                formatDisplay: (stat) => formatDisplayName(stat.name),
                                 onInputChange: (input, query) => {
                                     if (input.dataset.selectedStat && input.value !== formatDisplayName(input.dataset.selectedStat)) {
                                         input.dataset.selectedStat = '';
                                         valueInput.disabled = true;
                                         valueInput.value = '';
+                                        updateAllRivenRollPercents(rivenItem, build);
                                     }
                                 }
                             }
@@ -470,86 +488,55 @@
             }
 
             /**
-             * Setup a searchable dropdown for riven stats (uses weapon-type-specific stats)
-             * @param {HTMLElement} searchInput - The input element for searching
-             * @param {HTMLElement} searchResults - The container for search results
-             * @param {HTMLElement} build - The build element containing the weapon type selector
-             * @param {Function} onSelect - Callback when an item is selected
-             * @param {Object} options - Configuration options
+             * Get riven configuration from riven item element, including positive/negative count, disposition, etc.
+             * @param {HTMLElement} rivenItem - The riven item DOM element
+             * @param {HTMLElement} build - The build containing the riven
+             * @returns {Object|null} Configuration object or null if invalid
              */
-            function setupRivenStatDropdown(searchInput, searchResults, build, onSelect, options = {}) {
-                const {
-                    clearOnSelect = false,
-                    noResultsMessage = 'No stats found',
-                    formatDisplay = (stat) => formatDisplayName(stat.name),
-                    onInputChange = null
-                } = options;
+            function getRivenConfig(rivenItem, build) {
+                const weaponType = build.querySelector('.weapon-type-select').value;
+                const disposition = parseFloat(build.querySelector('.weapon-disposition-input').value) || 1.0;
 
-                // Search functionality
-                searchInput.addEventListener('input', function() {
-                    const query = this.value.trim().toLowerCase();
+                if (!weaponType || !rivenStats[weaponType]) {
+                    return null;
+                }
 
-                    // Allow custom input change handling
-                    if (onInputChange) {
-                        onInputChange(this, query);
+                const statRows = rivenItem.querySelectorAll('.riven-stat-row');
+                const stats = [];
+                let positiveCount = 0;
+                let negativeCount = 0;
+
+                statRows.forEach((row, index) => {
+                    const searchInput = row.querySelector('.riven-stat-search-input');
+                    const valueInput = row.querySelector('.riven-stat-value');
+                    const statName = searchInput.dataset.selectedStat;
+                    const isNegative = row.dataset.isNegative === 'true';
+
+                    if (statName) {
+                        if (isNegative) {
+                            negativeCount++;
+                        } else {
+                            positiveCount++;
+                        }
                     }
 
-                    if (query.length < 1) {
-                        searchResults.style.display = 'none';
-                        return;
-                    }
-
-                    // Get available stats based on weapon type
-                    const availableStats = getAvailableRivenStatsForBuild(build);
-
-                    if (availableStats.length === 0) {
-                        searchResults.innerHTML = '<div class="search-result-item">Select weapon type first</div>';
-                        searchResults.style.display = 'block';
-                        return;
-                    }
-
-                    // Filter and sort stats (prefix matches first, then contains matches)
-                    const matchingStats = availableStats
-                        .map(stat => ({ stat, priority: getSearchMatchPriority(stat.name, query) }))
-                        .filter(item => item.priority >= 0)
-                        .sort((a, b) => a.priority - b.priority)
-                        .map(item => item.stat);
-
-                    // Render results
-                    searchResults.innerHTML = '';
-                    if (matchingStats.length === 0) {
-                        searchResults.innerHTML = `<div class="search-result-item">${noResultsMessage}</div>`;
-                    } else {
-                        matchingStats.forEach(stat => {
-                            const item = document.createElement('div');
-                            item.className = 'search-result-item';
-                            item.textContent = formatDisplay(stat);
-                            item.addEventListener('click', function() {
-                                onSelect(stat, searchInput);
-                                if (clearOnSelect) {
-                                    searchInput.value = '';
-                                }
-                                searchResults.style.display = 'none';
-                            });
-                            searchResults.appendChild(item);
-                        });
-                    }
-                    searchResults.style.display = 'block';
+                    stats.push({
+                        index: index,
+                        row: row,
+                        statName: statName,
+                        searchInput: searchInput,
+                        valueInput: valueInput,
+                        isNegative: isNegative
+                    });
                 });
 
-                // Hide results when clicking outside
-                searchInput.addEventListener('blur', function() {
-                    setTimeout(() => {
-                        searchResults.style.display = 'none';
-                    }, 200);
-                });
-
-                // Show results when focusing if there's a query
-                searchInput.addEventListener('focus', function() {
-                    if (this.value.trim().length >= 1) {
-                        this.dispatchEvent(new Event('input'));
-                    }
-                });
+                return {
+                    weaponType,
+                    disposition,
+                    positiveCount,
+                    negativeCount,
+                    stats
+                };
             }
 
             /**
@@ -569,16 +556,18 @@
              * @param {string} weaponType - The weapon type (rifle, shotgun, etc.)
              * @param {number} disposition - The weapon's riven disposition
              * @param {number} positiveCount - Number of positive stats (2 or 3)
-             * @param {boolean} hasNegative - Whether there's a negative stat
+             * @param {number} negativeCount - Number of negative stats (0 or 1)
              * @param {boolean} isNegative - Whether this stat is the negative one
              * @param {string} rollType - 'min', 'avg', or 'max'
              * @returns {number|null} The calculated stat value or null if not available
              */
-            function calculateRivenStatValue(statName, weaponType, disposition, positiveCount, hasNegative, isNegative, rollType) {
+            function calculateRivenStatValue(statName, weaponType, disposition, positiveCount, negativeCount, isNegative, rollType) {
                 if (!rivenStats[weaponType]) return null;
 
                 const baseValue = rivenStats[weaponType][statName];
                 if (baseValue === undefined) return null;
+
+                const hasNegative = negativeCount > 0;
 
                 // Determine the multiplier based on stat configuration
                 let multiplier;
@@ -622,77 +611,95 @@
             }
 
             /**
-             * Apply roll values to all stats in a riven item
+             * Update all roll percentages in a riven item
+             * Uses getRivenConfig to get consistent configuration for all stats
+             * @param {HTMLElement} rivenItem - The riven item DOM element
+             * @param {HTMLElement} build - The build containing the riven
+             */
+            function updateAllRivenRollPercents(rivenItem, build) {
+                const config = getRivenConfig(rivenItem, build);
+                if (!config) return;
+
+                config.stats.forEach(stat => {
+                    const percentSpan = stat.row.querySelector('.riven-roll-percent');
+
+                    if (!stat.statName || !stat.valueInput.value) {
+                        percentSpan.textContent = '';
+                        return;
+                    }
+
+                    const avgValue = calculateRivenStatValue(
+                        stat.statName,
+                        config.weaponType,
+                        config.disposition,
+                        config.positiveCount,
+                        config.negativeCount,
+                        stat.isNegative,
+                        'avg'
+                    );
+
+                    if (avgValue === null || avgValue === 0) {
+                        percentSpan.textContent = '';
+                        return;
+                    }
+
+                    const currentValue = parseFloat(stat.valueInput.value);
+                    // For negative stats, compare absolute values since we force negative
+                    const percentFromAvg = stat.isNegative
+                        ? ((Math.abs(currentValue) / Math.abs(avgValue)) - 1) * 100
+                        : ((currentValue / avgValue) - 1) * 100;
+
+                    // Display with sign and color (always show + for non-negative)
+                    // For negative stats, reverse the color (higher abs value = worse)
+                    percentSpan.textContent = `+${percentFromAvg.toFixed(1)}%`.replace('+-', '-');
+                    const isGood = stat.isNegative ? percentFromAvg < 0 : percentFromAvg >= 0;
+                    percentSpan.style.color = isGood ? '#4a9' : '#a94';
+                });
+            }
+
+            /**
+             * Generate roll values for all stats in a riven item
              * @param {HTMLElement} rivenItem - The riven item DOM element
              * @param {HTMLElement} build - The build containing the riven
              * @param {string} rollType - 'min', 'avg', or 'max'
              */
-            function applyRivenRoll(rivenItem, build, rollType) {
-                const weaponType = build.querySelector('.weapon-type-select').value;
-                const disposition = parseFloat(build.querySelector('.weapon-disposition-input').value) || 1.0;
+            function generateRivenRoll(rivenItem, build, rollType) {
+                const config = getRivenConfig(rivenItem, build);
 
-                if (!weaponType) {
+                if (!config) {
                     alert('Please select a weapon type first');
                     return;
                 }
 
-                // Collect all selected stats to determine configuration
-                const statRows = rivenItem.querySelectorAll('.riven-stat-row');
-                const selectedStats = [];
-
-                statRows.forEach(row => {
-                    const searchInput = row.querySelector('.riven-stat-search-input');
-                    const valueInput = row.querySelector('.riven-stat-value');
-                    const statName = searchInput.dataset.selectedStat;
-
-                    if (statName) {
-                        // Check if it's a negative stat using the data attribute
-                        const isNegative = row.dataset.isNegative === 'true';
-                        selectedStats.push({
-                            row: row,
-                            statName: statName,
-                            searchInput: searchInput,
-                            valueInput: valueInput,
-                            isNegative: isNegative
-                        });
-                    }
-                });
-
-                if (selectedStats.length === 0) {
-                    alert('Please select at least one riven stat');
-                    return;
-                }
-
-                // Count positives and negatives
-                const negativeCount = selectedStats.filter(s => s.isNegative).length;
-                const positiveCount = selectedStats.length - negativeCount;
+                const selectedStats = config.stats.filter(s => s.statName);
 
                 // Validate configuration (must have 2-3 positives and 0-1 negatives)
-                if (positiveCount < 2 || positiveCount > 3 || negativeCount > 1) {
+                if (config.positiveCount < 2 || config.positiveCount > 3 || config.negativeCount > 1) {
                     alert('Invalid riven configuration. Must have 2-3 positive stats and 0-1 negative stat.');
                     return;
                 }
-
-                const hasNegative = negativeCount > 0;
 
                 // Calculate and apply values for each stat
                 selectedStats.forEach(stat => {
                     const value = calculateRivenStatValue(
                         stat.statName,
-                        weaponType,
-                        disposition,
-                        positiveCount,
-                        hasNegative,
+                        config.weaponType,
+                        config.disposition,
+                        config.positiveCount,
+                        config.negativeCount,
                         stat.isNegative,
                         rollType
                     );
 
                     if (value !== null) {
-                        // Round to 4 decimal places for display
-                        stat.valueInput.value = Math.round(value * 10000) / 10000;
+                        // Round to 3 decimal places for display
+                        stat.valueInput.value = Math.round(value * 1000) / 1000;
                         stat.valueInput.disabled = false;
                     }
                 });
+
+                // Update roll percentages after applying values
+                updateAllRivenRollPercents(rivenItem, build);
             }
 
             function loadElementOptions() {
@@ -875,6 +882,7 @@
                             </div>
                             <input type="number" class="riven-stat-value" data-stat-index="${i}"
                                    step="0.01" placeholder="Value" disabled>
+                            <span class="riven-roll-percent" data-stat-index="${i}"></span>
                         </div>
                     `;
                 }
@@ -1162,22 +1170,11 @@
             }
 
             function switchResultTab(buildId) {
-                // Update tab active state
                 document.querySelectorAll('.result-tab').forEach(tab => {
-                    if (tab.dataset.buildId === buildId) {
-                        tab.classList.add('active');
-                    } else {
-                        tab.classList.remove('active');
-                    }
+                    tab.classList.toggle('active', tab.dataset.buildId === buildId);
                 });
-
-                // Update content active state
                 document.querySelectorAll('.result-content').forEach(content => {
-                    if (content.dataset.buildId === buildId) {
-                        content.classList.add('active');
-                    } else {
-                        content.classList.remove('active');
-                    }
+                    content.classList.toggle('active', content.dataset.buildId === buildId);
                 });
             }
 
